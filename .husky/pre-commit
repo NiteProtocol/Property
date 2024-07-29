@@ -1,0 +1,1 @@
+yarn format:sol && yarn format:ts && yarn lint:sol && yarn lint:ts

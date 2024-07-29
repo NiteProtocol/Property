@@ -1,0 +1,15 @@
+name: Tests
+on: push
+jobs:
+  run_test_coverage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "yarn"
+      - name: Install dependencies
+        run: yarn --prefer-offline
+      - name: Compile code and run test coverage
+        run: yarn test:coverage
