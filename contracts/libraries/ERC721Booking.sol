@@ -31,6 +31,57 @@ abstract contract ERC721Booking is Context, ERC165, IERC721, IERC721Metadata, Re
     }
 
     /*============================================================
+                        BOOKING DATA STORAGE
+    ============================================================*/
+    struct Booking {
+        uint256 checkIn;
+        uint256 checkOut;
+        bytes data;
+    }
+
+    uint256 public bookingCounter;
+
+    mapping(uint256 tokenId => uint256) public bookingIds;
+
+    mapping(uint256 bookingId => Booking) public bookings;
+
+    function _createBooking(uint256 fromId, uint256 toId, bytes memory data) internal virtual {
+        unchecked {
+            bookingCounter++;
+        }
+
+        bookings[bookingCounter] = Booking(fromId, toId, data);
+        uint256 tokenId = fromId;
+        while (tokenId <= toId) {
+            bookingIds[tokenId] = bookingCounter;
+            unchecked {
+                tokenId++;
+            }
+        }
+    }
+
+    function _deleteBooking(uint256 fromId, uint256 toId) internal virtual {
+        uint256 bookingId = bookingIds[fromId];
+        if (bookingId != bookingIds[toId]) {
+            revert MismatchedBookingIds();
+        }
+
+        if (bookings[bookingId].checkOut != toId) {
+            revert InvalidCheckoutTokenId();
+        }
+
+        uint256 tokenId = fromId;
+        while (tokenId <= toId) {
+            delete bookingIds[tokenId];
+            unchecked {
+                tokenId++;
+            }
+        }
+
+        delete bookings[bookingId];
+    }
+
+    /*============================================================
                     ERC721 BALANCE/OWNER STORAGE
     ============================================================*/
     mapping(uint256 tokenId => address) internal _bookedBy;
@@ -107,7 +158,72 @@ abstract contract ERC721Booking is Context, ERC165, IERC721, IERC721Metadata, Re
         emit ApprovalForAll(owner, operator, approved);
     }
 
+    function _transferFrom(address from, address to, uint256 tokenId, bytes memory data) internal virtual {
+        _validateOwnerAndSender(from, tokenId);
+
+        _beforeTokenTransfer(from, to, tokenId, 0);
+
+        _updateBookingAndBalance(from, to, tokenId, tokenId, data);
+        _updateTokenStorage(from, to, tokenId);
+
+        _afterTokenTransfer(from, to, tokenId, 0);
+    }
+
     function transferFrom(address from, address to, uint256 tokenId) public virtual nonReentrant {
+        _transferFrom(from, to, tokenId, "");
+    }
+
+    function safeTransferFrom(address from, address to, uint256 tokenId) public virtual nonReentrant {
+        _transferFrom(from, to, tokenId, "");
+        _validateRecipient(from, to, tokenId, "");
+    }
+
+    function safeTransferFrom(
+        address from,
+        address to,
+        uint256 tokenId,
+        bytes calldata data
+    ) public virtual nonReentrant {
+        _transferFrom(from, to, tokenId, data);
+        _validateRecipient(from, to, tokenId, data);
+    }
+
+    function _updateTokenStorage(address from, address to, uint256 tokenId) internal virtual {
+        _bookedBy[tokenId] = to;
+
+        delete getApproved[tokenId];
+
+        emit Transfer(from, to, tokenId);
+    }
+
+    function _updateBookingAndBalance(
+        address from,
+        address to,
+        uint256 fromId,
+        uint256 toId,
+        bytes memory data
+    ) internal virtual {
+        uint256 amount = toId - fromId + 1;
+        if (_bookedBy[fromId] == address(0)) {
+            _createBooking(fromId, toId, data);
+        } else {
+            // Underflow of the sender's balance is impossible because we check for
+            // ownership above and the recipient's balance can't realistically overflow.
+            unchecked {
+                _balanceOf[from] -= amount;
+            }
+        }
+
+        if (to == address(0)) {
+            _deleteBooking(fromId, toId);
+        } else {
+            unchecked {
+                _balanceOf[to] += amount;
+            }
+        }
+    }
+
+    function _validateOwnerAndSender(address from, uint256 tokenId) internal virtual {
         if (from != ownerOf(tokenId)) {
             revert WrongFrom();
         }
@@ -116,43 +232,9 @@ abstract contract ERC721Booking is Context, ERC165, IERC721, IERC721Metadata, Re
         if (msgSender != from && !isApprovedForAll[from][msgSender] && msgSender != getApproved[tokenId]) {
             revert Unauthorized();
         }
-
-        _beforeTokenTransfer(from, to, tokenId, 0);
-
-        // Underflow of the sender's balance is impossible because we check for
-        // ownership above and the recipient's balance can't realistically overflow.
-        if (_bookedBy[tokenId] != address(0)) {
-            unchecked {
-                _balanceOf[from]--;
-            }
-        }
-
-        if (to != address(0)) {
-            unchecked {
-                _balanceOf[to]++;
-            }
-        }
-
-        _bookedBy[tokenId] = to;
-
-        delete getApproved[tokenId];
-
-        emit Transfer(from, to, tokenId);
-
-        _afterTokenTransfer(from, to, tokenId, 0);
     }
 
-    function safeTransferFrom(address from, address to, uint256 tokenId) public virtual {
-        transferFrom(from, to, tokenId);
-        _validateReceipient(from, to, tokenId, "");
-    }
-
-    function safeTransferFrom(address from, address to, uint256 tokenId, bytes calldata data) public virtual {
-        transferFrom(from, to, tokenId);
-        _validateReceipient(from, to, tokenId, data);
-    }
-
-    function _validateReceipient(address from, address to, uint256 tokenId, bytes memory data) internal virtual {
+    function _validateRecipient(address from, address to, uint256 tokenId, bytes memory data) internal virtual {
         if (
             to.code.length != 0 &&
             IERC721Receiver(to).onERC721Received(_msgSender(), from, tokenId, data) !=
@@ -178,44 +260,18 @@ abstract contract ERC721Booking is Context, ERC165, IERC721, IERC721Metadata, Re
 
         _beforeTokenTransfer(from, to, fromId, toId);
 
-        // Underflow of the sender's balance is impossible because we check for
-        // ownership above and the recipient's balance can't realistically overflow.
-        uint256 amount = toId - fromId + 1;
-        if (_bookedBy[fromId] != address(0)) {
-            unchecked {
-                _balanceOf[from] -= amount;
-            }
-        }
-
-        if (to != address(0)) {
-            unchecked {
-                _balanceOf[to] += amount;
-            }
-        }
-
-        address msgSender = _msgSender();
+        _updateBookingAndBalance(from, to, fromId, toId, data);
 
         uint256 tokenId = fromId;
         while (tokenId <= toId) {
-            if (from != ownerOf(tokenId)) {
-                revert WrongFrom();
-            }
+            _validateOwnerAndSender(from, tokenId);
+            _validateRecipient(from, to, tokenId, data);
 
-            if (msgSender != from && !isApprovedForAll[from][msgSender] && msgSender != getApproved[tokenId]) {
-                revert Unauthorized();
-            }
-
-            _validateReceipient(from, to, fromId, data);
-
-            _bookedBy[tokenId] = to;
-
-            delete getApproved[tokenId];
+            _updateTokenStorage(from, to, tokenId);
 
             unchecked {
                 tokenId += 1;
             }
-
-            emit Transfer(from, to, tokenId);
         }
 
         _afterTokenTransfer(from, to, fromId, toId);
@@ -265,4 +321,6 @@ abstract contract ERC721Booking is Context, ERC165, IERC721, IERC721Metadata, Re
     error WrongFrom();
     error UnsafeRecipient();
     error InvalidTokenId();
+    error MismatchedBookingIds();
+    error InvalidCheckoutTokenId();
 }
