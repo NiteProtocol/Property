@@ -1,6 +1,6 @@
-# Smart contracts V4
+# Dtravel Smart Contracts
 
-This repository contains the core smart contracts for Dtravel Booking Service, using **Nite Tokens**.
+This repository contains the core smart contracts for Dtravel's On-Chain Infrastructure.
 
 ## Prerequisites
 
