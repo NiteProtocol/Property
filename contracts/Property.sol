@@ -63,42 +63,13 @@ contract Property is INiteToken, ERC721Booking, Pausable, EIP712 {
     }
 
     /*============================================================
-                            HOST SETIING
+                            SETTINGS
     ============================================================*/
 
-    /**
-     * @notice Set token name
-     * @dev    Caller must be HOST
-     * @param _name token name
-     */
-    function setName(string calldata _name) external onlyOwner {
-        name = _name;
-    }
-
-    /**
-     * @notice Set token base URI
-     * @dev    Caller must be HOST
-     * @param _uri token base URI
-     */
-    function setBaseURI(string calldata _uri) external onlyOwner {
-        baseTokenURI = _uri;
-    }
-
-    /**
-     * @notice Disable token transfer
-     * @dev Caller must be HOST
-     */
-    function pause() external onlyOwner {
-        _pause();
-    }
-
-    /**
-     * @notice Enable token transfer
-     * @dev Caller must be HOST
-     */
-    function unpause() external onlyOwner {
-        _unpause();
-    }
+    function setName(string calldata _name) external onlyOwner { name = _name; }
+    function setBaseURI(string calldata _uri) external onlyOwner { baseTokenURI = _uri;}
+    function pause() external onlyOwner { _pause(); }     // pause Nite token transfers
+    function unpause() external onlyOwner { _unpause(); } // unpause Nite token transfers
 
     /*============================================================
                             Staking
