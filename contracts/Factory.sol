@@ -42,4 +42,8 @@ contract Factory is IFactory, Ownable {
         propertyContract[_host][_slot] = _propertyContract;
         emit NewPropertyContract(_slot, _propertyContract, _host);
     }
+
+    function getTRVLAddress() public view returns (address) {
+        return TRVL;
+    }
 }

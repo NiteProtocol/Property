@@ -6,6 +6,7 @@ interface IFactory {
     function propertyContract(address, uint256) external returns (address);
     function setOperator(address _addr) external;
     function setFeeAmountPerTransfer(uint256 _feeAmount) external;
+    function getTRVLAddress() external view returns (address);
     function createPropertyContract(uint256 _slot, address _host, 
       string calldata _name, string calldata _symbol, string calldata _uri
     ) external returns (address _nft);
