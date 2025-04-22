@@ -32,11 +32,6 @@ contract Property is INiteToken, ERC721Booking, Pausable, EIP712 {
     // the nonces mapping is used for replay protection
     mapping(address => uint256) public sigNonces;
 
-    modifier onlyHost() {
-        if (_msgSender() != HOST) { revert OnlyHost(); }
-        _;
-    }
-
     constructor(address _host, address _initialApproved, address _factory,
         string memory _name, string memory _symbol, string memory _uri
     ) ERC721Booking(_host, _name, _symbol) EIP712("DtravelNT", "1") {
@@ -51,7 +46,8 @@ contract Property is INiteToken, ERC721Booking, Pausable, EIP712 {
 
     function _beforeTokenTransfer(address from, address to, uint256 fromId, uint256 lastId) internal override(ERC721Booking) {
         address msgSender = _msgSender();
-        bool isHostOrApproved = msgSender == HOST || isApprovedForAll[HOST][msgSender];
+        address o = owner();
+        bool isHostOrApproved = msgSender == o || isApprovedForAll[o][msgSender];
         _collectTransferFee(fromId, lastId);
         if (isHostOrApproved) { return; }
         if (paused()) { revert TransferWhilePaused(); }
@@ -62,7 +58,7 @@ contract Property is INiteToken, ERC721Booking, Pausable, EIP712 {
         uint256 amount = (lastId == 0) ? 1 : lastId - fromId + 1;
         uint256 fee = amount * FACTORY.feeAmountPerTransfer() * DENOMINATOR / price(); // fee in STRVL
         if (fee > 0) {
-            STRVL.burn(HOST, fee);
+            STRVL.burn(owner(), fee); // TODO: add a free trial period.
         }
     }
 
@@ -75,7 +71,7 @@ contract Property is INiteToken, ERC721Booking, Pausable, EIP712 {
      * @dev    Caller must be HOST
      * @param _name token name
      */
-    function setName(string calldata _name) external onlyHost {
+    function setName(string calldata _name) external onlyOwner {
         name = _name;
     }
 
@@ -84,7 +80,7 @@ contract Property is INiteToken, ERC721Booking, Pausable, EIP712 {
      * @dev    Caller must be HOST
      * @param _uri token base URI
      */
-    function setBaseURI(string calldata _uri) external onlyHost {
+    function setBaseURI(string calldata _uri) external onlyOwner {
         baseTokenURI = _uri;
     }
 
@@ -92,7 +88,7 @@ contract Property is INiteToken, ERC721Booking, Pausable, EIP712 {
      * @notice Disable token transfer
      * @dev Caller must be HOST
      */
-    function pause() external onlyHost {
+    function pause() external onlyOwner {
         _pause();
     }
 
@@ -100,7 +96,7 @@ contract Property is INiteToken, ERC721Booking, Pausable, EIP712 {
      * @notice Enable token transfer
      * @dev Caller must be HOST
      */
-    function unpause() external onlyHost {
+    function unpause() external onlyOwner {
         _unpause();
     }
 

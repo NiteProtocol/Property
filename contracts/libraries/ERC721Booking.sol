@@ -5,24 +5,21 @@ import {Context} from "@openzeppelin/contracts/utils/Context.sol";
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 import {ERC165} from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {IERC721Metadata} from "@openzeppelin/contracts/token/ERC721/extensions/IERC721Metadata.sol";
 import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 
-abstract contract ERC721Booking is Context, ERC165, IERC721, IERC721Metadata, ReentrancyGuard {
+abstract contract ERC721Booking is Context, ERC165, IERC721, IERC721Metadata, ReentrancyGuard, Ownable {
     using Strings for uint256;
 
     /*============================================================
                         METADATA STORAGE/LOGIC
     ============================================================*/
-    address public immutable HOST;
-
     string public name;
-
     string public symbol;
-
     string public baseTokenURI;
 
     function tokenURI(uint256 tokenId) public view virtual returns (string memory) {
@@ -89,14 +86,12 @@ abstract contract ERC721Booking is Context, ERC165, IERC721, IERC721Metadata, Re
     mapping(address owner => uint256) internal _balanceOf;
 
     function ownerOf(uint256 tokenId) public view virtual returns (address) {
-        if (_bookedBy[tokenId] == address(0)) return HOST;
+        if (_bookedBy[tokenId] == address(0)) return owner();
         return _bookedBy[tokenId];
     }
 
     function balanceOf(address owner) public view virtual returns (uint256) {
-        if (owner == address(0)) {
-            revert ZeroAddress();
-        }
+        if (owner == address(0)) { revert ZeroAddress(); }
         return _balanceOf[owner];
     }
 
@@ -111,11 +106,10 @@ abstract contract ERC721Booking is Context, ERC165, IERC721, IERC721Metadata, Re
                             CONSTRUCTOR
     ============================================================*/
 
-    constructor(address _host, string memory _name, string memory _symbol) {
+    constructor(address _host, string memory _name, string memory _symbol) Ownable(_host) {
         if (_host == address(0)) {
             revert ZeroAddress();
         }
-        HOST = _host;
         name = _name;
         symbol = _symbol;
     }
