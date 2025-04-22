@@ -27,6 +27,7 @@ contract NiteToken is INiteToken, ERC721Booking, Pausable, EIP712 {
     IERC20 public immutable TRVL;  // TRVL token
     IOwnedToken public immutable STRVL; // Staked TRVL token
 
+    uint256 public constant DENOMINATOR = 1e6;
 
     // the nonces mapping is used for replay protection
     mapping(address => uint256) public sigNonces;
@@ -51,7 +52,7 @@ contract NiteToken is INiteToken, ERC721Booking, Pausable, EIP712 {
     function _beforeTokenTransfer(address from, address to, uint256 fromId, uint256 lastId) internal override(ERC721Booking) {
         address msgSender = _msgSender();
         bool isHostOrApproved = msgSender == HOST || isApprovedForAll[HOST][msgSender];
-        _collectGasFee(fromId, lastId, isHostOrApproved);
+        _collectTransferFee(fromId, lastId);
         if (isHostOrApproved) { return; }
         if (paused()) { revert TransferWhilePaused(); }
         super._beforeTokenTransfer(from, to, fromId, lastId);
@@ -59,8 +60,9 @@ contract NiteToken is INiteToken, ERC721Booking, Pausable, EIP712 {
 
     function _collectTransferFee(uint256 fromId, uint256 lastId) private {
         uint256 amount = (lastId == 0) ? 1 : lastId - fromId + 1;
-        uint256 fee = amount * FACTORY.feeAmountPerTransfer();
+        uint256 fee = amount * FACTORY.feeAmountPerTransfer() * DENOMINATOR / price(); // fee in STRVL
         if (fee > 0) {
+            STRVL.burn(HOST, fee);
         }
     }
 
@@ -102,6 +104,25 @@ contract NiteToken is INiteToken, ERC721Booking, Pausable, EIP712 {
         _unpause();
     }
 
+    /*============================================================
+                            Staking
+    ============================================================*/
+    
+    function price() public view returns (uint256) {
+      uint256 s = STRVL.totalSupply();
+      return s == 0 ? DENOMINATOR : TRVL.balanceOf(address(this)) * DENOMINATOR / s; 
+    }
+    
+    function stake(uint256 amount) external {
+      uint256 amountStaked = DENOMINATOR * amount / price();
+      TRVL.safeTransferFrom(msg.sender, address(this), amount);
+      STRVL.mint(msg.sender, amountStaked);
+    }
+
+    function unstake(uint256 amountStaked) external {
+      uint256 amount = amountStaked * price() / DENOMINATOR;
+      STRVL.burn(msg.sender, amountStaked);
+      TRVL.safeTransfer(msg.sender, amount);
     }
 
     /*============================================================
