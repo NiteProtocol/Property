@@ -8,8 +8,11 @@ import {SignatureChecker} from "@openzeppelin/contracts/utils/cryptography/Signa
 
 import {INiteToken} from "./interfaces/INiteToken.sol";
 import {IFactory} from "./interfaces/IFactory.sol";
+import {IOwnedToken} from "./interfaces/IOwnedToken.sol";
 
 import {ERC721Booking} from "./libraries/ERC721Booking.sol";
+
+import {OwnedToken} from "./OwnedToken.sol";
 
 contract NiteToken is INiteToken, ERC721Booking, Pausable, EIP712 {
     using SafeERC20 for IERC20;
@@ -21,6 +24,9 @@ contract NiteToken is INiteToken, ERC721Booking, Pausable, EIP712 {
     bytes32 private constant PERMIT_FOR_ALL_TYPEHASH = 0x47ab88482c90e4bb94b82a947ae78fa91fb25de1469ab491f4c15b9a0a2677ee;
 
     IFactory public immutable FACTORY;
+    IERC20 public immutable TRVL;  // TRVL token
+    IOwnedToken public immutable STRVL; // Staked TRVL token
+
 
     // the nonces mapping is used for replay protection
     mapping(address => uint256) public sigNonces;
@@ -36,6 +42,8 @@ contract NiteToken is INiteToken, ERC721Booking, Pausable, EIP712 {
         if (_factory == address(0)) { revert ZeroAddress(); }
         if (_initialApproved != address(0)) { _setApprovalForAll(_host, _initialApproved, true); }
         FACTORY = IFactory(_factory);
+        TRVL = IERC20(FACTORY.gasToken());
+        STRVL = IOwnedToken(new OwnedToken(address(this), "STRVL", "STRVL"));
         baseTokenURI = _uri;
         _pause(); // pause token transfers by default
     }
