@@ -43,8 +43,8 @@ contract Property is INiteToken, ERC721Booking, Pausable, EIP712 {
         if (_factory == address(0)) { revert ZeroAddress(); }
         if (_initialApproved != address(0)) { _setApprovalForAll(_host, _initialApproved, true); }
         FACTORY = IFactory(_factory);
-        TRVL = IERC20(FACTORY.gasToken());
-        STRVL = IOwnedToken(new OwnedToken(address(this), _name, _symbol));
+        TRVL = IERC20(FACTORY.getTRVLAddress());
+        STRVL = IOwnedToken(new OwnedToken(_name, _symbol));
         baseTokenURI = _uri;
         _pause(); // pause token transfers by default
     }
