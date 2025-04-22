@@ -14,7 +14,7 @@ import {ERC721Booking} from "./libraries/ERC721Booking.sol";
 
 import {OwnedToken} from "./OwnedToken.sol";
 
-contract NiteToken is INiteToken, ERC721Booking, Pausable, EIP712 {
+contract Property is INiteToken, ERC721Booking, Pausable, EIP712 {
     using SafeERC20 for IERC20;
     using SignatureChecker for address;
 

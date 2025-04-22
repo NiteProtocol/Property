@@ -6,18 +6,18 @@ import {Create2} from "@openzeppelin/contracts/utils/Create2.sol";
 
 import {IFactory} from "./interfaces/IFactory.sol";
 
-import {NiteToken} from "./NiteToken.sol";
+import {Property} from "./Property.sol";
 
 contract Factory is IFactory, Ownable {
     bytes32 public constant VERSION = keccak256("BOOKING_V5");
 
-    address private immutable GAS_TOKEN;
+    address public immutable GAS_TOKEN;
 
     // the gas fee per Nite transfer
     uint256 public feeAmountPerTransfer;
 
-    // returns Nite contract address for a slot given by host (host => slot => nite contract)
-    mapping(address => mapping(uint256 => address)) public niteContract;
+    // returns Property contract address for a slot given by host (host => slot => nite contract)
+    mapping(address => mapping(uint256 => address)) public propertyContract;
 
     // the operator address that could be approved by host to transfer Nite tokens
     address public operator;
@@ -60,30 +60,26 @@ contract Factory is IFactory, Ownable {
      * @param _name The token name
      * @param _uri The token URI
      */
-    function createNiteContract(
+    function createPropertyContract(
         uint256 _slot,
         address _host,
         string calldata _name,
         string calldata _uri
-    ) external returns (address _niteContract) {
-        if (niteContract[_host][_slot] != address(0)) {
+    ) external returns (address _propertyContract) {
+        if (propertyContract[_host][_slot] != address(0)) {
             revert TokenDeployedAlready();
         }
 
         bytes32 salt = keccak256(abi.encodePacked(_host, _slot, VERSION));
 
         bytes memory bytecode = abi.encodePacked(
-            type(NiteToken).creationCode,
+            type(Property).creationCode,
             abi.encode(_host, operator, address(this), _name, "NT", _uri)
         );
 
-        _niteContract = Create2.deploy(0, salt, bytecode);
-        niteContract[_host][_slot] = _niteContract;
+        _propertyContract = Create2.deploy(0, salt, bytecode);
+        propertyContract[_host][_slot] = _propertyContract;
 
-        emit NewNiteContract(_slot, _niteContract, _host);
-    }
-
-    function gasToken() external view returns (address) {
-        return GAS_TOKEN;
+        emit NewPropertyContract(_slot, _propertyContract, _host);
     }
 }
