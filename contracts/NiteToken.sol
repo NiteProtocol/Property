@@ -77,16 +77,10 @@ contract NiteToken is INiteToken, ERC721Booking, Pausable, EIP712 {
         super._beforeTokenTransfer(from, to, fromId, lastId);
     }
 
-    function _collectGasFee(uint256 fromId, uint256 lastId, bool isHostOrWhitelisted) private {
-        address treasury = FACTORY.treasury();
+    function _collectTransferFee(uint256 fromId, uint256 lastId) private {
         uint256 amount = (lastId == 0) ? 1 : lastId - fromId + 1;
         uint256 fee = amount * FACTORY.feeAmountPerTransfer();
         if (fee > 0) {
-            if (isHostOrWhitelisted) {
-                IERC20(FACTORY.gasToken()).safeTransfer(treasury, fee);
-            } else {
-                IERC20(FACTORY.gasToken()).safeTransferFrom(ownerOf(fromId), treasury, fee);
-            }
         }
     }
 
@@ -128,15 +122,6 @@ contract NiteToken is INiteToken, ERC721Booking, Pausable, EIP712 {
         _unpause();
     }
 
-    /**
-     * @notice Withdraw gas token
-     * @dev Caller must be HOST
-     * @param to The address to withdraw to
-     * @param amount The amount of withdrawal
-     */
-    function withdrawGasToken(address to, uint256 amount) external onlyHost {
-        IERC20(FACTORY.gasToken()).safeTransfer(to, amount);
-        emit WithdrawGasToken(to, amount);
     }
 
     /*============================================================
