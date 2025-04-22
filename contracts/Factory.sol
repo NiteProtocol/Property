@@ -9,14 +9,11 @@ import {IFactory} from "./interfaces/IFactory.sol";
 import {NiteToken} from "./NiteToken.sol";
 
 contract Factory is IFactory, Ownable {
-    bytes32 public constant VERSION = keccak256("BOOKING_V4");
+    bytes32 public constant VERSION = keccak256("BOOKING_V5");
 
     address private immutable GAS_TOKEN;
 
-    // the treasury address to receive gas fee from Nite transfers
-    address public treasury;
-
-    // the gas fee per Nite transfer, sent to the treasury
+    // the gas fee per Nite transfer
     uint256 public feeAmountPerTransfer;
 
     // returns Nite contract address for a slot given by host (host => slot => nite contract)
@@ -25,12 +22,11 @@ contract Factory is IFactory, Ownable {
     // the operator address that could be approved by host to transfer Nite tokens
     address public operator;
 
-    constructor(address _operator, address _treasury, address _tokenAddress, uint256 _feeAmount) Ownable(msg.sender) {
-        if (_operator == address(0) || _treasury == address(0) || _tokenAddress == address(0)) {
+    constructor(address _operator, address _tokenAddress, uint256 _feeAmount) Ownable(msg.sender) {
+        if (_operator == address(0) || _tokenAddress == address(0)) {
             revert ZeroAddress();
         }
         operator = _operator;
-        treasury = _treasury;
         GAS_TOKEN = _tokenAddress;
         feeAmountPerTransfer = _feeAmount;
     }
@@ -44,19 +40,6 @@ contract Factory is IFactory, Ownable {
         operator = _addr;
 
         emit NewOperator(_addr);
-    }
-
-    /**
-     * @notice Set treasury address
-     * @dev    Caller must be CONTRACT OWNER
-     * @param _addr The new treasury address
-     */
-    function setTreasury(address _addr) external onlyOwner {
-        if (_addr == address(0)) {
-            revert ZeroAddress();
-        }
-        treasury = _addr;
-        emit NewTreasury(_addr);
     }
 
     /**

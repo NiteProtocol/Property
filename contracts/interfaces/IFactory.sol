@@ -17,7 +17,6 @@ interface IFactory {
     ) external returns (address _nft);
 
     event NewOperator(address indexed newOperator);
-    event NewTreasury(address indexed newTreasury);
     event NewFeeAmountPerTransfer(uint256 feeNumerator);
     event NewNiteContract(uint256 indexed slot, address indexed niteContract, address indexed host);
 
