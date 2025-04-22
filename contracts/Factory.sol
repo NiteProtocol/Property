@@ -11,7 +11,7 @@ import {Property} from "./Property.sol";
 contract Factory is IFactory, Ownable {
     bytes32 public constant VERSION = keccak256("BOOKING_V5");
 
-    address public immutable GAS_TOKEN;
+    address public immutable TRVL;
 
     // the gas fee per Nite transfer
     uint256 public feeAmountPerTransfer;
@@ -27,7 +27,7 @@ contract Factory is IFactory, Ownable {
             revert ZeroAddress();
         }
         operator = _operator;
-        GAS_TOKEN = _tokenAddress;
+        TRVL = _tokenAddress;
         feeAmountPerTransfer = _feeAmount;
     }
 
