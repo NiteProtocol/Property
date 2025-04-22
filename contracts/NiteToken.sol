@@ -18,62 +18,34 @@ contract NiteToken is INiteToken, ERC721Booking, Pausable, EIP712 {
     // keccak256("Permit(address spender,uint256 tokenId,uint256 nonce,uint256 deadline)")
     bytes32 private constant PERMIT_TYPEHASH = 0x49ecf333e5b8c95c40fdafc95c1ad136e8914a8fb55e9dc8bb01eaa83a2df9ad;
     // keccak256("PermitForAll(address owner,address operator,bool approved,uint256 nonce,uint256 deadline)")
-    bytes32 private constant PERMIT_FOR_ALL_TYPEHASH =
-        0x47ab88482c90e4bb94b82a947ae78fa91fb25de1469ab491f4c15b9a0a2677ee;
+    bytes32 private constant PERMIT_FOR_ALL_TYPEHASH = 0x47ab88482c90e4bb94b82a947ae78fa91fb25de1469ab491f4c15b9a0a2677ee;
 
     IFactory public immutable FACTORY;
 
-    // the nonces mapping is given for replay protection
+    // the nonces mapping is used for replay protection
     mapping(address => uint256) public sigNonces;
 
     modifier onlyHost() {
-        if (_msgSender() != HOST) {
-            revert OnlyHost();
-        }
+        if (_msgSender() != HOST) { revert OnlyHost(); }
         _;
     }
 
-    constructor(
-        address _host,
-        address _intialApproved,
-        address _factory,
-        string memory _name,
-        string memory _symbol,
-        string memory _uri
+    constructor(address _host, address _initialApproved, address _factory,
+        string memory _name, string memory _symbol, string memory _uri
     ) ERC721Booking(_host, _name, _symbol) EIP712("DtravelNT", "1") {
-        if (_factory == address(0)) {
-            revert ZeroAddress();
-        }
-
-        if (_intialApproved != address(0)) {
-            _setApprovalForAll(_host, _intialApproved, true);
-        }
+        if (_factory == address(0)) { revert ZeroAddress(); }
+        if (_initialApproved != address(0)) { _setApprovalForAll(_host, _initialApproved, true); }
         FACTORY = IFactory(_factory);
         baseTokenURI = _uri;
-
-        // pause token transfers by default
-        _pause();
+        _pause(); // pause token transfers by default
     }
 
-    function _beforeTokenTransfer(
-        address from,
-        address to,
-        uint256 fromId,
-        uint256 lastId
-    ) internal override(ERC721Booking) {
+    function _beforeTokenTransfer(address from, address to, uint256 fromId, uint256 lastId) internal override(ERC721Booking) {
         address msgSender = _msgSender();
-
         bool isHostOrApproved = msgSender == HOST || isApprovedForAll[HOST][msgSender];
         _collectGasFee(fromId, lastId, isHostOrApproved);
-
-        if (isHostOrApproved) {
-            return;
-        }
-
-        if (paused()) {
-            revert TransferWhilePaused();
-        }
-
+        if (isHostOrApproved) { return; }
+        if (paused()) { revert TransferWhilePaused(); }
         super._beforeTokenTransfer(from, to, fromId, lastId);
     }
 
