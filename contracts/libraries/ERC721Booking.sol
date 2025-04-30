@@ -226,8 +226,6 @@ abstract contract ERC721Booking is Context, ERC165, IERC721, IERC721Metadata, Re
     ============================================================*/
     /* solhint-disable */
     function _beforeTokenTransfer(address from, address to, uint256 fromId, uint256 toId) internal virtual {}
-
-    /* solhint-disable */
     function _afterTokenTransfer(address from, address to, uint256 fromId, uint256 toId) internal virtual {}
     /* solhint-enable */
 
