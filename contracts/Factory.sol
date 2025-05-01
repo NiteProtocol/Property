@@ -33,11 +33,12 @@ contract Factory is IFactory, Ownable {
 
     function createPropertyContract(
         uint256 _slot, // for hosts with multiple property contracts.
-        address _host, string calldata _name, string calldata _symbol, string calldata _uri
+        address _host, string calldata _name, string calldata _symbol, string calldata _uri,
+        address _ownerVault
     ) external returns (address _propertyContract) {
         if (propertyContract[_host][_slot] != address(0)) { revert TokenDeployedAlready(); }
         bytes32 salt = keccak256(abi.encodePacked(_host, _slot, VERSION));
-        bytes memory bytecode = abi.encodePacked(type(Property).creationCode, abi.encode(_host, operator, address(this), _name, _symbol, _uri));
+        bytes memory bytecode = abi.encodePacked(type(Property).creationCode, abi.encode(_host, operator, address(this), _name, _symbol, _uri, _ownerVault));
         _propertyContract = Create2.deploy(0, salt, bytecode);
         propertyContract[_host][_slot] = _propertyContract;
         emit NewPropertyContract(_slot, _propertyContract, _host);
