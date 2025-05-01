@@ -102,6 +102,7 @@ contract Property is INiteToken, ERC721Booking, Pausable, EIP712 {
     function pause() external onlyOwner { _pause(); }     // pause Nite token transfers
     function unpause() external onlyOwner { _unpause(); } // unpause Nite token transfers
     function setBaseRate(uint256 _r) external onlyOwner { baseRate = _r; }
+    function setPaymentReceiver(address _a) external onlyOwner { paymentReceiver = _a; }
 
     /*============================================================
                             Staking
