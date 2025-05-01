@@ -29,6 +29,7 @@ contract Property is INiteToken, ERC721Booking, Pausable, EIP712 {
 
     uint256 public constant DENOMINATOR = 1e6;
 
+    uint256 public baseRate; // base price, in TRVL, for a single night, before any discounts or surcharges
     // the nonces mapping is used for replay protection
     mapping(address => uint256) public sigNonces;
 
@@ -62,6 +63,12 @@ contract Property is INiteToken, ERC721Booking, Pausable, EIP712 {
         }
     }
 
+    function costs(uint256 fromId, uint256 toId) public view returns (uint256 total, uint256 fee) {
+        uint256 nights = (toId == 0) ? 1 : toId - fromId + 1;
+        total = nights * baseRate;
+        uint256 bookingFee = 5e4; // 5% TODO: get this from the factory;
+        fee = total * bookingFee / DENOMINATOR; 
+    }
     /*============================================================
                             SETTINGS
     ============================================================*/
