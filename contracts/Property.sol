@@ -107,14 +107,10 @@ contract Property is INiteToken, ERC721Booking, Pausable, EIP712 {
      */
     function permit(address _spender, uint256 _tokenId, uint256 _deadline, bytes calldata _signature) public {
         address owner = ownerOf(_tokenId);
-        if (owner == _spender) {
-            revert ApprovalToCurrentOwner();
-        }
+        if (owner == _spender) { revert ApprovalToCurrentOwner(); }
 
         bytes32 structHash = keccak256(abi.encode(PERMIT_TYPEHASH, _spender, _tokenId, sigNonces[owner]++, _deadline));
-
         bytes32 digest = _hashTypedDataV4(structHash);
-
         _validateRecoveredAddress(digest, owner, _deadline, _signature);
         _approve(_spender, _tokenId);
     }
@@ -163,17 +159,9 @@ contract Property is INiteToken, ERC721Booking, Pausable, EIP712 {
     }
 
     function _validateRecoveredAddress(
-        bytes32 _digest,
-        address _owner,
-        uint256 _deadline,
-        bytes calldata _signature
+        bytes32 _digest, address _owner, uint256 _deadline, bytes calldata _signature
     ) private view {
-        if (block.timestamp > _deadline) {
-            revert PermitExpired();
-        }
-
-        if (!_owner.isValidSignatureNow(_digest, _signature)) {
-            revert InvalidPermitSignature();
-        }
+        if (block.timestamp > _deadline) { revert PermitExpired(); }
+        if (!_owner.isValidSignatureNow(_digest, _signature)) { revert InvalidPermitSignature(); }
     }
 }
