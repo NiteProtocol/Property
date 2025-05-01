@@ -30,14 +30,13 @@ contract Property is INiteToken, ERC721Booking, Pausable, EIP712 {
     uint256 public constant DENOMINATOR = 1e6;
 
     uint256 public baseRate; // base price, in TRVL, for a single night, before any discounts or surcharges
-    address public ownerVault; // address where owner will receive payments
+    address public paymentReceiver; // address where payments will be sent. It's initiated as the owner's address by default.
 
     // the nonces mapping is used for replay protection
     mapping(address => uint256) public sigNonces;
 
     constructor(address _host, address _initialApproved, address _factory,
-        string memory _name, string memory _symbol, string memory _uri,
-        address _ownerVault
+        string memory _name, string memory _symbol, string memory _uri
     ) ERC721Booking(_host, _name, _symbol) EIP712("DtravelNT", "1") {
         if (_factory == address(0)) { revert ZeroAddress(); }
         if (_initialApproved != address(0)) { _setApprovalForAll(_host, _initialApproved, true); }
@@ -45,7 +44,7 @@ contract Property is INiteToken, ERC721Booking, Pausable, EIP712 {
         TRVL = IERC20(FACTORY.getTRVLAddress());
         STRVL = IOwnedToken(new OwnedToken(_name, _symbol));
         baseTokenURI = _uri;
-        ownerVault = _ownerVault;
+        paymentReceiver = _host;
         _pause(); // pause token transfers by default
     }
 
@@ -78,7 +77,7 @@ contract Property is INiteToken, ERC721Booking, Pausable, EIP712 {
         (uint256 total, uint256 fee) = costs(fromId, toId);
         if (fee > 0) TRVL.safeTransferFrom(traveler, address(this), fee);
         uint256 amountToOwner = total - fee;
-        if (amountToOwner > 0) TRVL.safeTransferFrom(traveler, ownerVault, amountToOwner);
+        if (amountToOwner > 0) TRVL.safeTransferFrom(traveler, paymentReceiver, amountToOwner);
         safeBulkTransferFrom(owner(), traveler, fromId, toId);
     }
 
