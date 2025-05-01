@@ -69,6 +69,27 @@ contract Property is INiteToken, ERC721Booking, Pausable, EIP712 {
         uint256 bookingFee = 5e4; // 5% TODO: get this from the factory;
         fee = total * bookingFee / DENOMINATOR; 
     }
+    
+    function book(address traveler, uint256 fromId, uint256 toId) public {
+        (uint256 total, uint256 fee) = costs(fromId, toId);
+        if (fee > 0) TRVL.safeTransferFrom(traveler, address(this), fee);
+        uint256 amountToOwner = total - fee;
+        if (amountToOwner > 0) TRVL.safeTransferFrom(traveler, owner(), amountToOwner);
+        safeBulkTransferFrom(owner(), traveler, fromId, toId);
+    }
+
+    function bookWithOffChainPayment(address traveler, uint256 fromId, uint256 toId) public onlyOwner { // TODO: replace onlyOwner by onlyAuthorized
+        (, uint256 fee) = costs(fromId, toId);
+        if (fee > 0) TRVL.safeTransferFrom(owner(), address(this), fee); // we assume that the owner received the total amount off-chain and charge the fee from the owner
+        safeBulkTransferFrom(owner(), traveler, fromId, toId);
+    }
+
+    function cancel(uint256 bookingId, uint256 amountToReturn) public onlyOwner { // TODO: replace onlyOwner by onlyAuthorized
+        Booking memory b = bookings[bookingId];
+        address booker = ownerOf(b.checkIn);
+        if (amountToReturn > 0) TRVL.safeTransferFrom(owner(), booker, amountToReturn);
+        safeBulkTransferFrom(booker, address(0), b.checkIn, b.checkOut - 1);
+    }
     /*============================================================
                             SETTINGS
     ============================================================*/
