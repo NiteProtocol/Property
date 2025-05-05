@@ -93,6 +93,17 @@ contract Property is INiteToken, ERC721Booking, Pausable, EIP712 {
         if (amountToReturn > 0) TRVL.safeTransferFrom(owner(), booker, amountToReturn);
         safeBulkTransferFrom(booker, address(0), b.checkIn, b.checkOut - 1);
     }
+
+    function isAvailable(uint256 tokenId) public view returns(bool) { return ownerOf(tokenId) == owner(); }
+
+    function markAsUnavailable(uint256 fromId, uint256 toId) public onlyOwner {
+        safeBulkTransferFrom(owner(), address(this), fromId, toId); // By convention, tokens owned by this contract are assumed to be unavailable.
+    }
+
+    function markAsAvailable(uint256 fromId, uint256 toId) public onlyOwner {
+        safeBulkTransferFrom(address(this), owner(), fromId, toId); // By convention, tokens owned by this contract are assumed to be unavailable.
+    }
+
     /*============================================================
                             SETTINGS
     ============================================================*/

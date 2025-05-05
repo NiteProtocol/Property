@@ -156,7 +156,7 @@ abstract contract ERC721Booking is Context, ERC165, IERC721, IERC721Metadata, Re
 
     function _updateBookingAndBalance(address from, address to, uint256 fromId, uint256 toId, bytes memory data) internal virtual {
         uint256 amount = toId - fromId + 1;
-        if (_bookedBy[fromId] == address(0)) {
+        if (_bookedBy[fromId] == address(0) && to != address(this)) { // when we move a token to address(this), this is not booking but rather marking the token as unavailable. 
             _createBooking(fromId, toId, data);
         } else {
             unchecked {                     // Underflow of the sender's balance is impossible because we check for
@@ -164,7 +164,7 @@ abstract contract ERC721Booking is Context, ERC165, IERC721, IERC721Metadata, Re
             }
         }
 
-        if (to == address(0)) {
+        if (to == address(0) && from != address(this)) { // when we move a token from address(this), this is not deleting a booking but rather marking the token as available. 
             _deleteBooking(fromId, toId);
         } else {
             unchecked {
