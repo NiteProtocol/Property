@@ -29,6 +29,9 @@ contract Property is INiteToken, ERC721Booking, Pausable, EIP712 {
 
     uint256 public constant DENOMINATOR = 1e6;
 
+    uint256 public baseRate; // base price, in TRVL, for a single night, before any discounts or surcharges
+    address public paymentReceiver; // address where payments will be sent. It's initiated as the owner's address by default.
+
     // the nonces mapping is used for replay protection
     mapping(address => uint256) public sigNonces;
 
@@ -41,6 +44,7 @@ contract Property is INiteToken, ERC721Booking, Pausable, EIP712 {
         TRVL = IERC20(FACTORY.getTRVLAddress());
         STRVL = IOwnedToken(new OwnedToken(_name, _symbol));
         baseTokenURI = _uri;
+        paymentReceiver = _host;
         _pause(); // pause token transfers by default
     }
 
@@ -62,6 +66,33 @@ contract Property is INiteToken, ERC721Booking, Pausable, EIP712 {
         }
     }
 
+    function costs(uint256 fromId, uint256 toId) public view returns (uint256 total, uint256 fee) {
+        uint256 nights = (toId == 0) ? 1 : toId - fromId + 1;
+        total = nights * baseRate;
+        uint256 bookingFee = 5e4; // 5% TODO: get this from the factory;
+        fee = total * bookingFee / DENOMINATOR; 
+    }
+    
+    function book(address traveler, uint256 fromId, uint256 toId) public {
+        (uint256 total, uint256 fee) = costs(fromId, toId);
+        if (fee > 0) TRVL.safeTransferFrom(traveler, address(this), fee);
+        uint256 amountToOwner = total - fee;
+        if (amountToOwner > 0) TRVL.safeTransferFrom(traveler, paymentReceiver, amountToOwner);
+        safeBulkTransferFrom(owner(), traveler, fromId, toId);
+    }
+
+    function bookWithOffChainPayment(address traveler, uint256 fromId, uint256 toId) public onlyOwner { // TODO: replace onlyOwner by onlyAuthorized
+        (, uint256 fee) = costs(fromId, toId);
+        if (fee > 0) TRVL.safeTransferFrom(owner(), address(this), fee); // we assume that the owner received the total amount off-chain and charge the fee from the owner
+        safeBulkTransferFrom(owner(), traveler, fromId, toId);
+    }
+
+    function cancel(uint256 bookingId, uint256 amountToReturn) public onlyOwner { // TODO: replace onlyOwner by onlyAuthorized
+        Booking memory b = bookings[bookingId];
+        address booker = ownerOf(b.checkIn);
+        if (amountToReturn > 0) TRVL.safeTransferFrom(owner(), booker, amountToReturn);
+        safeBulkTransferFrom(booker, address(0), b.checkIn, b.checkOut - 1);
+    }
     /*============================================================
                             SETTINGS
     ============================================================*/
@@ -70,6 +101,8 @@ contract Property is INiteToken, ERC721Booking, Pausable, EIP712 {
     function setBaseURI(string calldata _uri) external onlyOwner { baseTokenURI = _uri;}
     function pause() external onlyOwner { _pause(); }     // pause Nite token transfers
     function unpause() external onlyOwner { _unpause(); } // unpause Nite token transfers
+    function setBaseRate(uint256 _r) external onlyOwner { baseRate = _r; }
+    function setPaymentReceiver(address _a) external onlyOwner { paymentReceiver = _a; }
 
     /*============================================================
                             Staking
@@ -107,14 +140,10 @@ contract Property is INiteToken, ERC721Booking, Pausable, EIP712 {
      */
     function permit(address _spender, uint256 _tokenId, uint256 _deadline, bytes calldata _signature) public {
         address owner = ownerOf(_tokenId);
-        if (owner == _spender) {
-            revert ApprovalToCurrentOwner();
-        }
+        if (owner == _spender) { revert ApprovalToCurrentOwner(); }
 
         bytes32 structHash = keccak256(abi.encode(PERMIT_TYPEHASH, _spender, _tokenId, sigNonces[owner]++, _deadline));
-
         bytes32 digest = _hashTypedDataV4(structHash);
-
         _validateRecoveredAddress(digest, owner, _deadline, _signature);
         _approve(_spender, _tokenId);
     }
@@ -163,17 +192,9 @@ contract Property is INiteToken, ERC721Booking, Pausable, EIP712 {
     }
 
     function _validateRecoveredAddress(
-        bytes32 _digest,
-        address _owner,
-        uint256 _deadline,
-        bytes calldata _signature
+        bytes32 _digest, address _owner, uint256 _deadline, bytes calldata _signature
     ) private view {
-        if (block.timestamp > _deadline) {
-            revert PermitExpired();
-        }
-
-        if (!_owner.isValidSignatureNow(_digest, _signature)) {
-            revert InvalidPermitSignature();
-        }
+        if (block.timestamp > _deadline) { revert PermitExpired(); }
+        if (!_owner.isValidSignatureNow(_digest, _signature)) { revert InvalidPermitSignature(); }
     }
 }
