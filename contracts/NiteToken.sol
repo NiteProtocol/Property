@@ -8,8 +8,11 @@ import {SignatureChecker} from "@openzeppelin/contracts/utils/cryptography/Signa
 
 import {INiteToken} from "./interfaces/INiteToken.sol";
 import {IFactory} from "./interfaces/IFactory.sol";
+import {IOwnedToken} from "./interfaces/IOwnedToken.sol";
 
 import {ERC721Booking} from "./libraries/ERC721Booking.sol";
+
+import {OwnedToken} from "./OwnedToken.sol";
 
 contract NiteToken is INiteToken, ERC721Booking, Pausable, EIP712 {
     using SafeERC20 for IERC20;
@@ -18,75 +21,48 @@ contract NiteToken is INiteToken, ERC721Booking, Pausable, EIP712 {
     // keccak256("Permit(address spender,uint256 tokenId,uint256 nonce,uint256 deadline)")
     bytes32 private constant PERMIT_TYPEHASH = 0x49ecf333e5b8c95c40fdafc95c1ad136e8914a8fb55e9dc8bb01eaa83a2df9ad;
     // keccak256("PermitForAll(address owner,address operator,bool approved,uint256 nonce,uint256 deadline)")
-    bytes32 private constant PERMIT_FOR_ALL_TYPEHASH =
-        0x47ab88482c90e4bb94b82a947ae78fa91fb25de1469ab491f4c15b9a0a2677ee;
+    bytes32 private constant PERMIT_FOR_ALL_TYPEHASH = 0x47ab88482c90e4bb94b82a947ae78fa91fb25de1469ab491f4c15b9a0a2677ee;
 
     IFactory public immutable FACTORY;
+    IERC20 public immutable TRVL;  // TRVL token
+    IOwnedToken public immutable STRVL; // Staked TRVL token
 
-    // the nonces mapping is given for replay protection
+    uint256 public constant DENOMINATOR = 1e6;
+
+    // the nonces mapping is used for replay protection
     mapping(address => uint256) public sigNonces;
 
     modifier onlyHost() {
-        if (_msgSender() != HOST) {
-            revert OnlyHost();
-        }
+        if (_msgSender() != HOST) { revert OnlyHost(); }
         _;
     }
 
-    constructor(
-        address _host,
-        address _intialApproved,
-        address _factory,
-        string memory _name,
-        string memory _symbol,
-        string memory _uri
+    constructor(address _host, address _initialApproved, address _factory,
+        string memory _name, string memory _symbol, string memory _uri
     ) ERC721Booking(_host, _name, _symbol) EIP712("DtravelNT", "1") {
-        if (_factory == address(0)) {
-            revert ZeroAddress();
-        }
-
-        if (_intialApproved != address(0)) {
-            _setApprovalForAll(_host, _intialApproved, true);
-        }
+        if (_factory == address(0)) { revert ZeroAddress(); }
+        if (_initialApproved != address(0)) { _setApprovalForAll(_host, _initialApproved, true); }
         FACTORY = IFactory(_factory);
+        TRVL = IERC20(FACTORY.gasToken());
+        STRVL = IOwnedToken(new OwnedToken(address(this), _name, _symbol));
         baseTokenURI = _uri;
-
-        // pause token transfers by default
-        _pause();
+        _pause(); // pause token transfers by default
     }
 
-    function _beforeTokenTransfer(
-        address from,
-        address to,
-        uint256 fromId,
-        uint256 lastId
-    ) internal override(ERC721Booking) {
+    function _beforeTokenTransfer(address from, address to, uint256 fromId, uint256 lastId) internal override(ERC721Booking) {
         address msgSender = _msgSender();
-
         bool isHostOrApproved = msgSender == HOST || isApprovedForAll[HOST][msgSender];
-        _collectGasFee(fromId, lastId, isHostOrApproved);
-
-        if (isHostOrApproved) {
-            return;
-        }
-
-        if (paused()) {
-            revert TransferWhilePaused();
-        }
-
+        _collectTransferFee(fromId, lastId);
+        if (isHostOrApproved) { return; }
+        if (paused()) { revert TransferWhilePaused(); }
         super._beforeTokenTransfer(from, to, fromId, lastId);
     }
 
-    function _collectGasFee(uint256 fromId, uint256 lastId, bool isHostOrWhitelisted) private {
-        address treasury = FACTORY.treasury();
+    function _collectTransferFee(uint256 fromId, uint256 lastId) private {
         uint256 amount = (lastId == 0) ? 1 : lastId - fromId + 1;
-        uint256 fee = amount * FACTORY.feeAmountPerTransfer();
+        uint256 fee = amount * FACTORY.feeAmountPerTransfer() * DENOMINATOR / price(); // fee in STRVL
         if (fee > 0) {
-            if (isHostOrWhitelisted) {
-                IERC20(FACTORY.gasToken()).safeTransfer(treasury, fee);
-            } else {
-                IERC20(FACTORY.gasToken()).safeTransferFrom(ownerOf(fromId), treasury, fee);
-            }
+            STRVL.burn(HOST, fee);
         }
     }
 
@@ -128,15 +104,25 @@ contract NiteToken is INiteToken, ERC721Booking, Pausable, EIP712 {
         _unpause();
     }
 
-    /**
-     * @notice Withdraw gas token
-     * @dev Caller must be HOST
-     * @param to The address to withdraw to
-     * @param amount The amount of withdrawal
-     */
-    function withdrawGasToken(address to, uint256 amount) external onlyHost {
-        IERC20(FACTORY.gasToken()).safeTransfer(to, amount);
-        emit WithdrawGasToken(to, amount);
+    /*============================================================
+                            Staking
+    ============================================================*/
+    
+    function price() public view returns (uint256) {
+      uint256 s = STRVL.totalSupply();
+      return s == 0 ? DENOMINATOR : TRVL.balanceOf(address(this)) * DENOMINATOR / s; 
+    }
+    
+    function stake(uint256 amount) external {
+      uint256 amountStaked = DENOMINATOR * amount / price();
+      TRVL.safeTransferFrom(msg.sender, address(this), amount);
+      STRVL.mint(msg.sender, amountStaked);
+    }
+
+    function unstake(uint256 amountStaked) external {
+      uint256 amount = amountStaked * price() / DENOMINATOR;
+      STRVL.burn(msg.sender, amountStaked);
+      TRVL.safeTransfer(msg.sender, amount);
     }
 
     /*============================================================
