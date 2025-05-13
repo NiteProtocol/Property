@@ -14,7 +14,7 @@ import {ERC721Booking} from "./libraries/ERC721Booking.sol";
 
 import {OwnedToken} from "./OwnedToken.sol";
 
-contract NiteToken is INiteToken, ERC721Booking, Pausable, EIP712 {
+contract Property is INiteToken, ERC721Booking, Pausable, EIP712 {
     using SafeERC20 for IERC20;
     using SignatureChecker for address;
 
@@ -32,26 +32,22 @@ contract NiteToken is INiteToken, ERC721Booking, Pausable, EIP712 {
     // the nonces mapping is used for replay protection
     mapping(address => uint256) public sigNonces;
 
-    modifier onlyHost() {
-        if (_msgSender() != HOST) { revert OnlyHost(); }
-        _;
-    }
-
     constructor(address _host, address _initialApproved, address _factory,
         string memory _name, string memory _symbol, string memory _uri
     ) ERC721Booking(_host, _name, _symbol) EIP712("DtravelNT", "1") {
         if (_factory == address(0)) { revert ZeroAddress(); }
         if (_initialApproved != address(0)) { _setApprovalForAll(_host, _initialApproved, true); }
         FACTORY = IFactory(_factory);
-        TRVL = IERC20(FACTORY.gasToken());
-        STRVL = IOwnedToken(new OwnedToken(address(this), _name, _symbol));
+        TRVL = IERC20(FACTORY.getTRVLAddress());
+        STRVL = IOwnedToken(new OwnedToken(_name, _symbol));
         baseTokenURI = _uri;
         _pause(); // pause token transfers by default
     }
 
     function _beforeTokenTransfer(address from, address to, uint256 fromId, uint256 lastId) internal override(ERC721Booking) {
         address msgSender = _msgSender();
-        bool isHostOrApproved = msgSender == HOST || isApprovedForAll[HOST][msgSender];
+        address o = owner();
+        bool isHostOrApproved = msgSender == o || isApprovedForAll[o][msgSender];
         _collectTransferFee(fromId, lastId);
         if (isHostOrApproved) { return; }
         if (paused()) { revert TransferWhilePaused(); }
@@ -62,47 +58,18 @@ contract NiteToken is INiteToken, ERC721Booking, Pausable, EIP712 {
         uint256 amount = (lastId == 0) ? 1 : lastId - fromId + 1;
         uint256 fee = amount * FACTORY.feeAmountPerTransfer() * DENOMINATOR / price(); // fee in STRVL
         if (fee > 0) {
-            STRVL.burn(HOST, fee);
+            STRVL.burn(owner(), fee); // TODO: add a free trial period.
         }
     }
 
     /*============================================================
-                            HOST SETIING
+                            SETTINGS
     ============================================================*/
 
-    /**
-     * @notice Set token name
-     * @dev    Caller must be HOST
-     * @param _name token name
-     */
-    function setName(string calldata _name) external onlyHost {
-        name = _name;
-    }
-
-    /**
-     * @notice Set token base URI
-     * @dev    Caller must be HOST
-     * @param _uri token base URI
-     */
-    function setBaseURI(string calldata _uri) external onlyHost {
-        baseTokenURI = _uri;
-    }
-
-    /**
-     * @notice Disable token transfer
-     * @dev Caller must be HOST
-     */
-    function pause() external onlyHost {
-        _pause();
-    }
-
-    /**
-     * @notice Enable token transfer
-     * @dev Caller must be HOST
-     */
-    function unpause() external onlyHost {
-        _unpause();
-    }
+    function setName(string calldata _name) external onlyOwner { name = _name; }
+    function setBaseURI(string calldata _uri) external onlyOwner { baseTokenURI = _uri;}
+    function pause() external onlyOwner { _pause(); }     // pause Nite token transfers
+    function unpause() external onlyOwner { _unpause(); } // unpause Nite token transfers
 
     /*============================================================
                             Staking
