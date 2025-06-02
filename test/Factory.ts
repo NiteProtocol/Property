@@ -15,51 +15,36 @@ describe('Factory', function () {
 
   async function deployFactoryFixture() {
     // Contracts are deployed using the first signer/account by default
-    const [owner, operator, treasury, ...otherAccounts] = await ethers.getSigners();
+    const [owner, operator, ...otherAccounts] = await ethers.getSigners();
 
     const gasToken = await ethers.deployContract('ERC20Test', ['token1', 'TK1']);
 
     const fee = 500;
 
     const factoryFactory = await ethers.getContractFactory('Factory');
-    const factory = await factoryFactory.deploy(operator.address, treasury.address, await gasToken.getAddress(), fee);
+    const factory = await factoryFactory.deploy(operator.address, await gasToken.getAddress(), fee);
 
-    return { factory, owner, operator, treasury, otherAccounts, gasToken, fee };
+    return { factory, owner, operator, otherAccounts, gasToken, fee };
   }
 
   describe('Deployment', () => {
     it('revert if operator is zero address', async () => {
-      const { treasury } = await loadFixture(deployFactoryFixture);
-
       const gasToken = await ethers.deployContract('ERC20Test', ['token1', 'TK1']);
 
       const fee = 500;
 
       const factoryFactory = await ethers.getContractFactory('Factory');
       await expect(
-        factoryFactory.deploy(ZeroAddress, treasury.address, gasToken.getAddress(), fee),
-      ).revertedWithCustomError(factoryFactory, 'ZeroAddress');
-    });
-
-    it('revert if treasury is zero address', async () => {
-      const { operator } = await loadFixture(deployFactoryFixture);
-
-      const gasToken = await ethers.deployContract('ERC20Test', ['token1', 'TK1']);
-
-      const fee = 500;
-
-      const factoryFactory = await ethers.getContractFactory('Factory');
-      await expect(
-        factoryFactory.deploy(operator.address, ZeroAddress, gasToken.getAddress(), fee),
+        factoryFactory.deploy(ZeroAddress, gasToken.getAddress(), fee),
       ).revertedWithCustomError(factoryFactory, 'ZeroAddress');
     });
 
     it('revert if gas token is zero address', async () => {
-      const { operator, treasury } = await loadFixture(deployFactoryFixture);
+      const { operator } = await loadFixture(deployFactoryFixture);
       const fee = 500;
 
       const factoryFactory = await ethers.getContractFactory('Factory');
-      await expect(factoryFactory.deploy(operator.address, treasury.address, ZeroAddress, fee)).revertedWithCustomError(
+      await expect(factoryFactory.deploy(operator.address, ZeroAddress, fee)).revertedWithCustomError(
         factoryFactory,
         'ZeroAddress',
       );
@@ -96,41 +81,10 @@ describe('Factory', function () {
     });
   });
 
-  describe('Set treasury', () => {
-    it('set the right treasury', async () => {
-      const { factory, treasury } = await loadFixture(deployFactoryFixture);
-
-      const res = await factory.treasury();
-
-      expect(res).deep.equal(treasury.address);
-    });
-
-    it('set the new treasury', async () => {
-      const { factory, treasury } = await loadFixture(deployFactoryFixture);
-
-      await expect(factory.setTreasury(treasury.address)).to.emit(factory, 'NewTreasury').withArgs(treasury.address);
-    });
-
-    it('revert if set treasury to zero address', async () => {
-      const { factory } = await loadFixture(deployFactoryFixture);
-
-      await expect(factory.setTreasury(ZeroAddress)).revertedWithCustomError(factory, 'ZeroAddress');
-    });
-
-    it('revert if caller is not OPERATOR', async () => {
-      const { factory, otherAccounts } = await loadFixture(deployFactoryFixture);
-
-      await expect(factory.connect(otherAccounts[4]).setTreasury(otherAccounts[5].address)).revertedWithCustomError(
-        factory,
-        'OwnableUnauthorizedAccount',
-      );
-    });
-  });
-
   describe('Set fee amount per Nite transfer', () => {
     it('set the right gas token', async () => {
       const { factory, gasToken } = await loadFixture(deployFactoryFixture);
-      const token = await factory.gasToken();
+      const token = await factory.getTRVLAddress();
 
       expect(token).deep.equal(await gasToken.getAddress());
     });
@@ -175,7 +129,7 @@ describe('Factory', function () {
 
       // compute offchain address before deploying a new RNT contact
       const salt = keccak256(
-        solidityPacked(['address', 'uint256', 'bytes32'], [host.address, slot, keccak256(toUtf8Bytes('BOOKING_V4'))]),
+        solidityPacked(['address', 'uint256', 'bytes32'], [host.address, slot, keccak256(toUtf8Bytes('BOOKING_V5'))]),
       );
 
       const encodedParams = AbiCoder.defaultAbiCoder()
@@ -185,13 +139,13 @@ describe('Factory', function () {
         )
         .slice(2);
 
-      const niteTokenFactory = await ethers.getContractFactory('NiteToken');
-      const constructorByteCode = `${niteTokenFactory.bytecode}${encodedParams}`;
+      const propertyFactory = await ethers.getContractFactory('Property');
+      const constructorByteCode = `${propertyFactory.bytecode}${encodedParams}`;
 
       const offchainComputed = computeCreate2Address(salt, constructorByteCode, factoryAddress);
 
-      await expect(factory.connect(operator).createNiteContract(slot, host.address, name, uri))
-        .emit(factory, 'NewNiteContract')
+      await expect(factory.connect(operator).createPropertyContract(slot, host.address, name, symbol, uri))
+        .emit(factory, 'NewPropertyContract')
         .withArgs(slot, offchainComputed, host.address);
     });
 
@@ -207,7 +161,7 @@ describe('Factory', function () {
 
       // compute offchain address before deploying a new RNT contact
       const salt = keccak256(
-        solidityPacked(['address', 'uint256', 'bytes32'], [host.address, slot, keccak256(toUtf8Bytes('BOOKING_V4'))]),
+        solidityPacked(['address', 'uint256', 'bytes32'], [host.address, slot, keccak256(toUtf8Bytes('BOOKING_V5'))]),
       );
 
       const encodedParams = AbiCoder.defaultAbiCoder()
@@ -217,13 +171,13 @@ describe('Factory', function () {
         )
         .slice(2);
 
-      const niteTokenFactory = await ethers.getContractFactory('NiteToken');
-      const constructorByteCode = `${niteTokenFactory.bytecode}${encodedParams}`;
+      const propertyFactory = await ethers.getContractFactory('Property');
+      const constructorByteCode = `${propertyFactory.bytecode}${encodedParams}`;
 
       const offchainComputed = computeCreate2Address(salt, constructorByteCode, factoryAddress);
 
-      await expect(factory.connect(host).createNiteContract(slot, host.address, name, uri))
-        .emit(factory, 'NewNiteContract')
+      await expect(factory.connect(host).createPropertyContract(slot, host.address, name, symbol, uri))
+        .emit(factory, 'NewPropertyContract')
         .withArgs(slot, offchainComputed, host.address);
     });
 
@@ -239,7 +193,7 @@ describe('Factory', function () {
 
       // compute offchain address before deploying a new RNT contact
       const salt = keccak256(
-        solidityPacked(['address', 'uint256', 'bytes32'], [host.address, slot, keccak256(toUtf8Bytes('BOOKING_V4'))]),
+        solidityPacked(['address', 'uint256', 'bytes32'], [host.address, slot, keccak256(toUtf8Bytes('BOOKING_V5'))]),
       );
 
       const encodedParams = AbiCoder.defaultAbiCoder()
@@ -249,13 +203,13 @@ describe('Factory', function () {
         )
         .slice(2);
 
-      const niteTokenFactory = await ethers.getContractFactory('NiteToken');
-      const constructorByteCode = `${niteTokenFactory.bytecode}${encodedParams}`;
+      const propertyFactory = await ethers.getContractFactory('Property');
+      const constructorByteCode = `${propertyFactory.bytecode}${encodedParams}`;
 
       const offchainComputed = computeCreate2Address(salt, constructorByteCode, factoryAddress);
 
-      await expect(factory.connect(otherAccounts[0]).createNiteContract(slot, host.address, name, uri))
-        .emit(factory, 'NewNiteContract')
+      await expect(factory.connect(otherAccounts[0]).createPropertyContract(slot, host.address, name, symbol, uri))
+        .emit(factory, 'NewPropertyContract')
         .withArgs(slot, offchainComputed, host.address);
     });
 
@@ -265,11 +219,12 @@ describe('Factory', function () {
       const slot = 1;
       const host = otherAccounts[2];
       const name = 'Nites in Mansion in Mars';
+      const symbol = 'NT';
       const uri = 'http://ipfs.io/ipfs/NT/';
 
-      await factory.createNiteContract(slot, host.address, name, uri);
+      await factory.createPropertyContract(slot, host.address, name, symbol, uri);
 
-      await expect(factory.createNiteContract(slot, host.address, name, uri)).revertedWithCustomError(
+      await expect(factory.createPropertyContract(slot, host.address, name, symbol, uri)).revertedWithCustomError(
         factory,
         'TokenDeployedAlready',
       );
@@ -281,14 +236,15 @@ describe('Factory', function () {
       const slot = 1;
       const host = otherAccounts[2];
       let name = 'Nites in Mansion in Mars';
+      const symbol = 'NT';
       let uri = 'http://ipfs.io/ipfs/NT1/';
 
-      await factory.createNiteContract(slot, host.address, name, uri);
+      await factory.createPropertyContract(slot, host.address, name, symbol, uri);
 
       name = 'Nites in Motel in Venus';
       uri = 'http://ipfs.io/ipfs/NT2/';
 
-      await expect(factory.createNiteContract(slot, host.address, name, uri)).revertedWithCustomError(
+      await expect(factory.createPropertyContract(slot, host.address, name, symbol, uri)).revertedWithCustomError(
         factory,
         'TokenDeployedAlready',
       );

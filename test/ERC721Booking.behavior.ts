@@ -27,7 +27,7 @@ export function shouldBehaveLikeERC721Booking() {
 
   describe('deployment', function () {
     it('get the right host', async function () {
-      expect(await this.token.HOST()).deep.equal(this.host.address);
+      expect(await this.token.owner()).deep.equal(this.host.address);
     });
 
     it('get the right factory', async function () {
@@ -37,18 +37,18 @@ export function shouldBehaveLikeERC721Booking() {
     it('revert on deployment with zero address host', async function () {
       const { factory, operator, name, symbol, uri } = this;
 
-      const niteFactory = await ethers.getContractFactory('NiteToken');
+      const niteFactory = await ethers.getContractFactory('Property');
       await expect(
-        ethers.deployContract('NiteToken', [ZeroAddress, operator.address, factory.getAddress(), name, symbol, uri]),
-      ).revertedWithCustomError(niteFactory, 'ZeroAddress');
+        ethers.deployContract('Property', [ZeroAddress, operator.address, factory.getAddress(), name, symbol, uri]),
+      ).revertedWithCustomError(niteFactory, 'OwnableInvalidOwner');
     });
 
     it('revert on deployment with zero address factory', async function () {
       const { host, operator, name, symbol, uri } = this;
 
-      const niteFactory = await ethers.getContractFactory('NiteToken');
+      const niteFactory = await ethers.getContractFactory('Property');
       await expect(
-        ethers.deployContract('NiteToken', [host.address, operator.address, ZeroAddress, name, symbol, uri]),
+        ethers.deployContract('Property', [host.address, operator.address, ZeroAddress, name, symbol, uri]),
       ).revertedWithCustomError(niteFactory, 'ZeroAddress');
     });
   });

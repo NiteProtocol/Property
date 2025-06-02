@@ -11,7 +11,6 @@ async function fixture() {
 
   const factory = await ethers.deployContract('Factory', [
     factoryOperator.address,
-    treasury.address,
     gasToken.getAddress(),
     fee,
   ]);
@@ -21,7 +20,7 @@ async function fixture() {
   const symbol = 'NT';
   const uri = 'http://ipfs.io/ipfs/NT/';
 
-  const token = await ethers.deployContract('NiteToken', [
+  const token = await ethers.deployContract('Property', [
     host.address,
     factoryOperator.address,
     factoryAddress,

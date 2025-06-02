@@ -18,4 +18,10 @@ contract ERC20Test is ERC20 {
     function decimals() public pure override returns (uint8) {
         return 6;
     }
+
+    function approve(address spender, uint256 value) public override returns (bool) {
+        address owner = _msgSender();
+        _approve(owner, spender, value);
+        return true;
+    }
 }
