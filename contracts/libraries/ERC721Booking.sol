@@ -17,7 +17,7 @@ abstract contract ERC721Booking is Context, ERC165, IERC721, IERC721Metadata, Re
 
     string public name;
     string public symbol;
-    string public baseTokenURI;
+    string public url;
 
     constructor(address _host, string memory _name, string memory _symbol) Ownable(_host) {
         if (_host == address(0)) { revert ZeroAddress(); }
@@ -25,8 +25,8 @@ abstract contract ERC721Booking is Context, ERC165, IERC721, IERC721Metadata, Re
     }
 
     function tokenURI(uint256 tokenId) public view virtual returns (string memory) {
-        string memory baseURI = baseTokenURI;
-        return bytes(baseURI).length > 0 ? string(abi.encodePacked(baseURI, tokenId.toString())) : "";
+        string memory u = url;
+        return bytes(u).length > 0 ? string(abi.encodePacked(u, tokenId.toString())) : "";
     }
 
     /*============================================================
