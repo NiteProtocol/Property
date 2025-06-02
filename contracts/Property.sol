@@ -32,18 +32,26 @@ contract Property is INiteToken, ERC721Booking, Pausable, EIP712 {
     uint256 public baseRate; // base price, in TRVL, for a single night, before any discounts or surcharges
     address public paymentReceiver; // address where payments will be sent. It's initiated as the owner's address by default.
 
+    string public region; // the region where the property is located
+    string public city;   // the city where the property is located
+    
+    string public contactDetails; // contact details for the property's manager
+    string public mainImageURL;   // URL of the main image for the property
+
     // the nonces mapping is used for replay protection
     mapping(address => uint256) public sigNonces;
 
     constructor(address _host, address _initialApproved, address _factory,
-        string memory _name, string memory _symbol, string memory _uri
+        string memory _name, string memory _symbol,
+        string memory _region, string memory _city
     ) ERC721Booking(_host, _name, _symbol) EIP712("DtravelNT", "1") {
         if (_factory == address(0)) { revert ZeroAddress(); }
         if (_initialApproved != address(0)) { _setApprovalForAll(_host, _initialApproved, true); }
         FACTORY = IFactory(_factory);
         TRVL = IERC20(FACTORY.getTRVLAddress());
         STRVL = IOwnedToken(new OwnedToken(_name, _symbol));
-        baseTokenURI = _uri;
+        region = _region;
+        city = _city;
         paymentReceiver = _host;
         _pause(); // pause token transfers by default
     }
@@ -109,11 +117,13 @@ contract Property is INiteToken, ERC721Booking, Pausable, EIP712 {
     ============================================================*/
 
     function setName(string calldata _name) external onlyOwner { name = _name; }
-    function setBaseURI(string calldata _uri) external onlyOwner { baseTokenURI = _uri;}
+    function setURL(string calldata _url) external onlyOwner { url = _url;} // the URL of the main booking site for this property and also the base URL for the nite tokens
     function pause() external onlyOwner { _pause(); }     // pause Nite token transfers
     function unpause() external onlyOwner { _unpause(); } // unpause Nite token transfers
     function setBaseRate(uint256 _r) external onlyOwner { baseRate = _r; }
     function setPaymentReceiver(address _a) external onlyOwner { paymentReceiver = _a; }
+    function setContactDetails(string calldata _s) external onlyOwner { contactDetails = _s; } 
+    function setMainImageURL(string calldata _s) external onlyOwner { mainImageURL = _s; } 
 
     /*============================================================
                             Staking

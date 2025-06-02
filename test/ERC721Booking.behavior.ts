@@ -35,20 +35,20 @@ export function shouldBehaveLikeERC721Booking() {
     });
 
     it('revert on deployment with zero address host', async function () {
-      const { factory, operator, name, symbol, uri } = this;
+      const { factory, operator, name, symbol, region, city } = this;
 
       const niteFactory = await ethers.getContractFactory('Property');
       await expect(
-        ethers.deployContract('Property', [ZeroAddress, operator.address, factory.getAddress(), name, symbol, uri]),
+        ethers.deployContract('Property', [ZeroAddress, operator.address, factory.getAddress(), name, symbol, region, city]),
       ).revertedWithCustomError(niteFactory, 'OwnableInvalidOwner');
     });
 
     it('revert on deployment with zero address factory', async function () {
-      const { host, operator, name, symbol, uri } = this;
+      const { host, operator, name, symbol, region, city } = this;
 
       const niteFactory = await ethers.getContractFactory('Property');
       await expect(
-        ethers.deployContract('Property', [host.address, operator.address, ZeroAddress, name, symbol, uri]),
+        ethers.deployContract('Property', [host.address, operator.address, ZeroAddress, name, symbol, region, city]),
       ).revertedWithCustomError(niteFactory, 'ZeroAddress');
     });
   });
@@ -898,8 +898,8 @@ export function shouldBehaveLikeERC721Metadata() {
         });
 
         it('base URI can be set', async function () {
-          await this.token.connect(this.host).setBaseURI(this.uri);
-          expect(await this.token.baseTokenURI()).deep.equal(this.uri);
+          await this.token.connect(this.host).setURL(this.uri);
+          expect(await this.token.url()).deep.equal(this.uri);
         });
 
         it('base URI is added as a prefix to the token URI', async function () {

@@ -18,7 +18,8 @@ async function fixture() {
 
   const name = 'Nites in Mansion in Mars';
   const symbol = 'NT';
-  const uri = 'http://ipfs.io/ipfs/NT/';
+  const region = 'Mars';
+  const city = 'Mars Colony 1';
 
   const token = await ethers.deployContract('Property', [
     host.address,
@@ -26,7 +27,7 @@ async function fixture() {
     factoryAddress,
     name,
     symbol,
-    uri,
+    region, city,
   ]);
 
   return {
@@ -41,7 +42,7 @@ async function fixture() {
     fee,
     name,
     symbol,
-    uri,
+    region, city
   };
 }
 

@@ -8,7 +8,8 @@ interface IFactory {
     function setFeeAmountPerTransfer(uint256 _feeAmount) external;
     function getTRVLAddress() external view returns (address);
     function createPropertyContract(uint256 _slot, address _host, 
-      string calldata _name, string calldata _symbol, string calldata _uri
+      string calldata _name, string calldata _symbol,
+      string calldata _country, string calldata _city
     ) external returns (address _nft);
 
     event NewOperator(address indexed newOperator);

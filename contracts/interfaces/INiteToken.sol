@@ -3,7 +3,7 @@ pragma solidity 0.8.29;
 
 interface INiteToken {
     function setName(string calldata _name) external;
-    function setBaseURI(string calldata _uri) external;
+    function setURL(string calldata _uri) external;
     function pause() external;
     function unpause() external;
     function permit(address _spender, uint256 _value, uint256 _deadline, bytes calldata _signature) external;

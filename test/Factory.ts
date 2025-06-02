@@ -125,7 +125,7 @@ describe('Factory', function () {
       const host = otherAccounts[2];
       const name = 'Nites in Mansion in Mars';
       const symbol = 'NT';
-      const uri = 'http://ipfs.io/ipfs/NT/';
+      const region = 'Mars'; const city = "Mars Colony 1";
 
       // compute offchain address before deploying a new RNT contact
       const salt = keccak256(
@@ -134,8 +134,8 @@ describe('Factory', function () {
 
       const encodedParams = AbiCoder.defaultAbiCoder()
         .encode(
-          ['address', 'address', 'address', 'string', 'string', 'string'],
-          [host.address, operator.address, factoryAddress, name, symbol, uri],
+          ['address', 'address', 'address', 'string', 'string', 'string', 'string'],
+          [host.address, operator.address, factoryAddress, name, symbol, region, city],
         )
         .slice(2);
 
@@ -144,7 +144,7 @@ describe('Factory', function () {
 
       const offchainComputed = computeCreate2Address(salt, constructorByteCode, factoryAddress);
 
-      await expect(factory.connect(operator).createPropertyContract(slot, host.address, name, symbol, uri))
+      await expect(factory.connect(operator).createPropertyContract(slot, host.address, name, symbol, region, city))
         .emit(factory, 'NewPropertyContract')
         .withArgs(slot, offchainComputed, host.address);
     });
@@ -157,7 +157,7 @@ describe('Factory', function () {
       const host = otherAccounts[2];
       const name = 'Nites in Mansion in Mars';
       const symbol = 'NT';
-      const uri = 'http://ipfs.io/ipfs/NT/';
+      const region = 'Mars'; const city = "Mars Colony 1";
 
       // compute offchain address before deploying a new RNT contact
       const salt = keccak256(
@@ -166,8 +166,8 @@ describe('Factory', function () {
 
       const encodedParams = AbiCoder.defaultAbiCoder()
         .encode(
-          ['address', 'address', 'address', 'string', 'string', 'string'],
-          [host.address, operator.address, factoryAddress, name, symbol, uri],
+          ['address', 'address', 'address', 'string', 'string', 'string', 'string'],
+          [host.address, operator.address, factoryAddress, name, symbol, region, city],
         )
         .slice(2);
 
@@ -176,7 +176,7 @@ describe('Factory', function () {
 
       const offchainComputed = computeCreate2Address(salt, constructorByteCode, factoryAddress);
 
-      await expect(factory.connect(host).createPropertyContract(slot, host.address, name, symbol, uri))
+      await expect(factory.connect(host).createPropertyContract(slot, host.address, name, symbol, region, city))
         .emit(factory, 'NewPropertyContract')
         .withArgs(slot, offchainComputed, host.address);
     });
@@ -189,7 +189,7 @@ describe('Factory', function () {
       const host = otherAccounts[2];
       const name = 'Nites in Mansion in Mars';
       const symbol = 'NT';
-      const uri = 'http://ipfs.io/ipfs/NT/';
+      const region = 'Mars'; const city = "Mars Colony 1";
 
       // compute offchain address before deploying a new RNT contact
       const salt = keccak256(
@@ -198,8 +198,8 @@ describe('Factory', function () {
 
       const encodedParams = AbiCoder.defaultAbiCoder()
         .encode(
-          ['address', 'address', 'address', 'string', 'string', 'string'],
-          [host.address, operator.address, factoryAddress, name, symbol, uri],
+          ['address', 'address', 'address', 'string', 'string', 'string', 'string'],
+          [host.address, operator.address, factoryAddress, name, symbol, region, city],
         )
         .slice(2);
 
@@ -208,7 +208,7 @@ describe('Factory', function () {
 
       const offchainComputed = computeCreate2Address(salt, constructorByteCode, factoryAddress);
 
-      await expect(factory.connect(otherAccounts[0]).createPropertyContract(slot, host.address, name, symbol, uri))
+      await expect(factory.connect(otherAccounts[0]).createPropertyContract(slot, host.address, name, symbol, region, city))
         .emit(factory, 'NewPropertyContract')
         .withArgs(slot, offchainComputed, host.address);
     });
@@ -220,11 +220,11 @@ describe('Factory', function () {
       const host = otherAccounts[2];
       const name = 'Nites in Mansion in Mars';
       const symbol = 'NT';
-      const uri = 'http://ipfs.io/ipfs/NT/';
+      const region = 'Mars'; const city = "Mars Colony 1";
 
-      await factory.createPropertyContract(slot, host.address, name, symbol, uri);
+      await factory.createPropertyContract(slot, host.address, name, symbol, region, city);
 
-      await expect(factory.createPropertyContract(slot, host.address, name, symbol, uri)).revertedWithCustomError(
+      await expect(factory.createPropertyContract(slot, host.address, name, symbol, region, city)).revertedWithCustomError(
         factory,
         'TokenDeployedAlready',
       );
@@ -237,14 +237,14 @@ describe('Factory', function () {
       const host = otherAccounts[2];
       let name = 'Nites in Mansion in Mars';
       const symbol = 'NT';
-      let uri = 'http://ipfs.io/ipfs/NT1/';
+      const region = 'Mars'; const city = "Mars Colony 1";
 
-      await factory.createPropertyContract(slot, host.address, name, symbol, uri);
+      await factory.createPropertyContract(slot, host.address, name, symbol, region, city);
 
       name = 'Nites in Motel in Venus';
-      uri = 'http://ipfs.io/ipfs/NT2/';
+      const region2 = 'Venus'; const city2 = "Venus Colony 2";
 
-      await expect(factory.createPropertyContract(slot, host.address, name, symbol, uri)).revertedWithCustomError(
+      await expect(factory.createPropertyContract(slot, host.address, name, symbol, region2, city2)).revertedWithCustomError(
         factory,
         'TokenDeployedAlready',
       );

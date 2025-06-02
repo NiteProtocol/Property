@@ -103,7 +103,7 @@ describe('Property', () => {
 
     const name = 'Nites in Mansion in Mars';
     const symbol = 'NT';
-    const uri = 'http://ipfs.io/ipfs/NT/';
+    const region = 'Mars'; const city = "Mars Colony 1";
 
     const token = await ethers.deployContract('Property', [
       host.address,
@@ -111,7 +111,7 @@ describe('Property', () => {
       factoryAddress,
       name,
       symbol,
-      uri,
+      region, city,
     ]);
 
     return {
@@ -126,22 +126,22 @@ describe('Property', () => {
       fee,
       name,
       symbol,
-      uri,
+      region, city,
     };
   }
 
   describe('Deployment', () => {
     it('revert if factory address is zero address', async () => {
-      const { host, name, symbol, uri } = await loadFixture(deployPropertyFixture);
+      const { host, name, symbol, region, city } = await loadFixture(deployPropertyFixture);
 
       const niteFactory = await ethers.getContractFactory('Property');
       await expect(
-        ethers.deployContract('Property', [host.address, ZeroAddress, ZeroAddress, name, symbol, uri]),
+        ethers.deployContract('Property', [host.address, ZeroAddress, ZeroAddress, name, symbol, region, city]),
       ).revertedWithCustomError(niteFactory, 'ZeroAddress');
     });
 
     it('token transfer approval must not be granted to the zero address operator.', async () => {
-      const { host, factory, name, symbol, uri, factoryOperator } = await loadFixture(deployPropertyFixture);
+      const { host, factory, name, symbol, region, city, factoryOperator } = await loadFixture(deployPropertyFixture);
 
       const nite = await ethers.deployContract('Property', [
         host.address,
@@ -149,7 +149,7 @@ describe('Property', () => {
         factory.getAddress(),
         name,
         symbol,
-        uri,
+        region, city,
       ]);
       expect(await nite.isApprovedForAll(host.address, factoryOperator.address)).deep.equal(false);
     });
@@ -208,18 +208,18 @@ describe('Property', () => {
       });
     });
 
-    describe('setBaseURI', () => {
+    describe('setURL', () => {
       it('host can set token base URI', async () => {
         const { host, token } = await loadFixture(deployPropertyFixture);
         const baseURI = 'https://api.example.com/v1/';
-        await token.connect(host).setBaseURI(baseURI);
-        expect(await token.baseTokenURI()).deep.equal(baseURI);
+        await token.connect(host).setURL(baseURI);
+        expect(await token.url()).deep.equal(baseURI);
       });
 
       it('revert if caller is not host', async () => {
         const { factoryOperator, token } = await loadFixture(deployPropertyFixture);
         const baseURI = 'https://api.example.com/v1/';
-        await expect(token.connect(factoryOperator).setBaseURI(baseURI)).revertedWithCustomError(token, 'OwnableUnauthorizedAccount');
+        await expect(token.connect(factoryOperator).setURL(baseURI)).revertedWithCustomError(token, 'OwnableUnauthorizedAccount');
       });
     });
 
