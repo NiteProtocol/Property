@@ -903,14 +903,14 @@ export function shouldBehaveLikeERC721Metadata() {
         });
 
         it('base URI is added as a prefix to the token URI', async function () {
-          await this.token.connect(this.host).setBaseURI(this.uri);
+          await this.token.connect(this.host).setURL(this.uri);
           expect(await this.token.tokenURI(firstTokenId)).deep.equal(this.uri + firstTokenId.toString());
         });
 
         it('token URI can be changed by changing the base URI', async function () {
-          await this.token.connect(this.host).setBaseURI(this.uri);
+          await this.token.connect(this.host).setURL(this.uri);
           const newBaseURI = 'https://api.example.com/v2/';
-          await this.token.connect(this.host).setBaseURI(newBaseURI);
+          await this.token.connect(this.host).setURL(newBaseURI);
           expect(await this.token.tokenURI(firstTokenId)).deep.equal(newBaseURI + firstTokenId.toString());
         });
       });
