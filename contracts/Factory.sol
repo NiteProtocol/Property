@@ -29,14 +29,15 @@ contract Factory is IFactory, Ownable {
     function createPropertyContract(
         uint256 _slot, // for hosts with multiple property contracts.
         address _host, string calldata _name, string calldata _symbol,
-    ) external returns (address _propertyContract) {
         string calldata _region
+    ) external returns (address _property) {
         if (propertyContract[_host][_slot] != address(0)) { revert TokenDeployedAlready(); }
         bytes32 salt = keccak256(abi.encodePacked(_host, _slot, VERSION));
-        _propertyContract = Create2.deploy(0, salt, bytecode);
-        propertyContract[_host][_slot] = _propertyContract;
-        emit NewPropertyContract(_slot, _propertyContract, _host);
         bytes memory bytecode = abi.encodePacked(type(Property).creationCode, abi.encode(_host, address(this), _name, _symbol, _region));
+        _property = Create2.deploy(0, salt, bytecode);
+        propertyContract[_host][_slot] = _property;
+        emit NewPropertyContract(_slot, _property, _host);
+        indexer.add(_region, _property);
     }
 
     function getTRVLAddress() public view returns (address) {
