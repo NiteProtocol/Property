@@ -8,22 +8,17 @@ import {Property} from "./Property.sol";
 
 contract Factory is IFactory, Ownable {
     bytes32 public constant VERSION = keccak256("BOOKING_V5");
-    address public operator; // address of operator who could be approved by host to transfer Nite tokens
     address public immutable TRVL;
 
     uint256 public feeAmountPerTransfer; // fee in TRVL per Nite token transfer
-    mapping(address => mapping(uint256 => address)) public propertyContract; // (host => slot => nite contract)
 
-    constructor(address _operator, address _tokenAddress, uint256 _feeAmount) Ownable(msg.sender) {
-        if (_operator == address(0) || _tokenAddress == address(0)) { revert ZeroAddress(); }
-        operator = _operator;
-        TRVL = _tokenAddress;
+    mapping(address => mapping(uint256 => address)) public propertyContract; // (host => slot => property)
+
+    constructor(address _trvl, uint256 _feeAmount) Ownable(msg.sender) {
+        if (_trvl == address(0)) { revert ZeroAddress(); }
+        TRVL = IERC20(_trvl);
         feeAmountPerTransfer = _feeAmount;
-    }
-
-    function setOperator(address _addr) external onlyOwner {
-        operator = _addr;
-        emit NewOperator(_addr);
+        indexer = IIndexer(new Indexer(_trvl));
     }
 
     function setFeeAmountPerTransfer(uint256 _feeAmount) external onlyOwner {
