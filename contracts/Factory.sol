@@ -6,10 +6,13 @@ import {Create2} from "@openzeppelin/contracts/utils/Create2.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IFactory} from "./interfaces/IFactory.sol";
 import {Property} from "./Property.sol";
+import {Indexer} from "./Indexer.sol";
+import {IIndexer} from "./interfaces/IIndexer.sol";
 
 contract Factory is IFactory, Ownable {
     bytes32 public constant VERSION = keccak256("BOOKING_V5");
     IERC20 public immutable TRVL;
+    IIndexer public indexer;
 
     uint256 public feeAmountPerTransfer; // fee in TRVL per Nite token transfer
 
