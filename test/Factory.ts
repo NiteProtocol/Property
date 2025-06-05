@@ -15,36 +15,25 @@ describe('Factory', function () {
 
   async function deployFactoryFixture() {
     // Contracts are deployed using the first signer/account by default
-    const [owner, operator, ...otherAccounts] = await ethers.getSigners();
+    const [owner, ...otherAccounts] = await ethers.getSigners();
 
     const gasToken = await ethers.deployContract('ERC20Test', ['token1', 'TK1']);
 
     const fee = 500;
 
     const factoryFactory = await ethers.getContractFactory('Factory');
-    const factory = await factoryFactory.deploy(operator.address, await gasToken.getAddress(), fee);
+    const factory = await factoryFactory.deploy(await gasToken.getAddress(), fee);
 
-    return { factory, owner, operator, otherAccounts, gasToken, fee };
+    return { factory, owner, otherAccounts, gasToken, fee };
   }
 
   describe('Deployment', () => {
-    it('revert if operator is zero address', async () => {
-      const gasToken = await ethers.deployContract('ERC20Test', ['token1', 'TK1']);
-
-      const fee = 500;
-
-      const factoryFactory = await ethers.getContractFactory('Factory');
-      await expect(
-        factoryFactory.deploy(ZeroAddress, gasToken.getAddress(), fee),
-      ).revertedWithCustomError(factoryFactory, 'ZeroAddress');
-    });
-
     it('revert if gas token is zero address', async () => {
-      const { operator } = await loadFixture(deployFactoryFixture);
+      await loadFixture(deployFactoryFixture);
       const fee = 500;
 
       const factoryFactory = await ethers.getContractFactory('Factory');
-      await expect(factoryFactory.deploy(operator.address, ZeroAddress, fee)).revertedWithCustomError(
+      await expect(factoryFactory.deploy(ZeroAddress, fee)).revertedWithCustomError(
         factoryFactory,
         'ZeroAddress',
       );
@@ -55,29 +44,6 @@ describe('Factory', function () {
     it('set the right owner', async () => {
       const { factory, owner } = await loadFixture(deployFactoryFixture);
       expect(await factory.owner()).deep.equal(owner.address);
-    });
-
-    it('set the right operator', async () => {
-      const { factory, otherAccounts } = await loadFixture(deployFactoryFixture);
-      const newOperator = otherAccounts[0].address;
-
-      await expect(factory.setOperator(newOperator)).to.emit(factory, 'NewOperator').withArgs(newOperator);
-    });
-
-    it('remove operator', async () => {
-      const { factory } = await loadFixture(deployFactoryFixture);
-
-      await expect(factory.setOperator(ZeroAddress)).emit(factory, 'NewOperator').withArgs(ZeroAddress);
-    });
-
-    it('revert if caller is not OPERATOR', async () => {
-      const { factory, otherAccounts } = await loadFixture(deployFactoryFixture);
-      const newOperator = otherAccounts[3].address;
-
-      await expect(factory.connect(otherAccounts[4]).setOperator(newOperator)).revertedWithCustomError(
-        factory,
-        'OwnableUnauthorizedAccount',
-      );
     });
   });
 
@@ -117,47 +83,15 @@ describe('Factory', function () {
   });
 
   describe('Create Nite token contract', () => {
-    it('operator can create Nite token contract', async () => {
-      const { factory, operator, otherAccounts } = await loadFixture(deployFactoryFixture);
-      const factoryAddress = await factory.getAddress();
-
-      const slot = 1;
-      const host = otherAccounts[2];
-      const name = 'Nites in Mansion in Mars';
-      const symbol = 'NT';
-      const region = 'Mars'; const city = "Mars Colony 1";
-
-      // compute offchain address before deploying a new RNT contact
-      const salt = keccak256(
-        solidityPacked(['address', 'uint256', 'bytes32'], [host.address, slot, keccak256(toUtf8Bytes('BOOKING_V5'))]),
-      );
-
-      const encodedParams = AbiCoder.defaultAbiCoder()
-        .encode(
-          ['address', 'address', 'address', 'string', 'string', 'string', 'string'],
-          [host.address, operator.address, factoryAddress, name, symbol, region, city],
-        )
-        .slice(2);
-
-      const propertyFactory = await ethers.getContractFactory('Property');
-      const constructorByteCode = `${propertyFactory.bytecode}${encodedParams}`;
-
-      const offchainComputed = computeCreate2Address(salt, constructorByteCode, factoryAddress);
-
-      await expect(factory.connect(operator).createPropertyContract(slot, host.address, name, symbol, region, city))
-        .emit(factory, 'NewPropertyContract')
-        .withArgs(slot, offchainComputed, host.address);
-    });
-
     it('host can create Nite token contract', async () => {
-      const { factory, operator, otherAccounts } = await loadFixture(deployFactoryFixture);
+      const { factory, otherAccounts } = await loadFixture(deployFactoryFixture);
       const factoryAddress = await factory.getAddress();
 
       const slot = 1;
       const host = otherAccounts[2];
       const name = 'Nites in Mansion in Mars';
       const symbol = 'NT';
-      const region = 'Mars'; const city = "Mars Colony 1";
+      const region = 'Mars';
 
       // compute offchain address before deploying a new RNT contact
       const salt = keccak256(
@@ -166,8 +100,8 @@ describe('Factory', function () {
 
       const encodedParams = AbiCoder.defaultAbiCoder()
         .encode(
-          ['address', 'address', 'address', 'string', 'string', 'string', 'string'],
-          [host.address, operator.address, factoryAddress, name, symbol, region, city],
+          ['address', 'address', 'string', 'string', 'string'],
+          [host.address, factoryAddress, name, symbol, region],
         )
         .slice(2);
 
@@ -176,20 +110,20 @@ describe('Factory', function () {
 
       const offchainComputed = computeCreate2Address(salt, constructorByteCode, factoryAddress);
 
-      await expect(factory.connect(host).createPropertyContract(slot, host.address, name, symbol, region, city))
+      await expect(factory.connect(host).createPropertyContract(slot, host.address, name, symbol, region))
         .emit(factory, 'NewPropertyContract')
         .withArgs(slot, offchainComputed, host.address);
     });
 
     it('anyone can create Nite token contract', async () => {
-      const { factory, operator, otherAccounts } = await loadFixture(deployFactoryFixture);
+      const { factory, otherAccounts } = await loadFixture(deployFactoryFixture);
       const factoryAddress = await factory.getAddress();
 
       const slot = 1;
       const host = otherAccounts[2];
       const name = 'Nites in Mansion in Mars';
       const symbol = 'NT';
-      const region = 'Mars'; const city = "Mars Colony 1";
+      const region = 'Mars';
 
       // compute offchain address before deploying a new RNT contact
       const salt = keccak256(
@@ -198,8 +132,8 @@ describe('Factory', function () {
 
       const encodedParams = AbiCoder.defaultAbiCoder()
         .encode(
-          ['address', 'address', 'address', 'string', 'string', 'string', 'string'],
-          [host.address, operator.address, factoryAddress, name, symbol, region, city],
+          ['address', 'address', 'string', 'string', 'string'],
+          [host.address, factoryAddress, name, symbol, region],
         )
         .slice(2);
 
@@ -208,7 +142,7 @@ describe('Factory', function () {
 
       const offchainComputed = computeCreate2Address(salt, constructorByteCode, factoryAddress);
 
-      await expect(factory.connect(otherAccounts[0]).createPropertyContract(slot, host.address, name, symbol, region, city))
+      await expect(factory.connect(otherAccounts[0]).createPropertyContract(slot, host.address, name, symbol, region))
         .emit(factory, 'NewPropertyContract')
         .withArgs(slot, offchainComputed, host.address);
     });
@@ -220,11 +154,11 @@ describe('Factory', function () {
       const host = otherAccounts[2];
       const name = 'Nites in Mansion in Mars';
       const symbol = 'NT';
-      const region = 'Mars'; const city = "Mars Colony 1";
+      const region = 'Mars';
 
-      await factory.createPropertyContract(slot, host.address, name, symbol, region, city);
+      await factory.createPropertyContract(slot, host.address, name, symbol, region);
 
-      await expect(factory.createPropertyContract(slot, host.address, name, symbol, region, city)).revertedWithCustomError(
+      await expect(factory.createPropertyContract(slot, host.address, name, symbol, region)).revertedWithCustomError(
         factory,
         'TokenDeployedAlready',
       );
@@ -239,12 +173,12 @@ describe('Factory', function () {
       const symbol = 'NT';
       const region = 'Mars'; const city = "Mars Colony 1";
 
-      await factory.createPropertyContract(slot, host.address, name, symbol, region, city);
+      await factory.createPropertyContract(slot, host.address, name, symbol, region);
 
       name = 'Nites in Motel in Venus';
       const region2 = 'Venus'; const city2 = "Venus Colony 2";
 
-      await expect(factory.createPropertyContract(slot, host.address, name, symbol, region2, city2)).revertedWithCustomError(
+      await expect(factory.createPropertyContract(slot, host.address, name, symbol, region2)).revertedWithCustomError(
         factory,
         'TokenDeployedAlready',
       );

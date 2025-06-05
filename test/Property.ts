@@ -89,13 +89,12 @@ describe('Property', () => {
   };
 
   async function deployPropertyFixture() {
-    const [deployer, factoryOperator, treasury, host, ...otherAccounts] = await ethers.getSigners();
+    const [deployer, treasury, host, ...otherAccounts] = await ethers.getSigners();
 
     const gasToken = await ethers.deployContract('ERC20Test', ['token1', 'TK1']);
     const fee = 0;
 
     const factory = await ethers.deployContract('Factory', [
-      factoryOperator.address,
       gasToken.getAddress(),
       fee,
     ]);
@@ -103,20 +102,18 @@ describe('Property', () => {
 
     const name = 'Nites in Mansion in Mars';
     const symbol = 'NT';
-    const region = 'Mars'; const city = "Mars Colony 1";
+    const region = 'Mars';
 
     const token = await ethers.deployContract('Property', [
       host.address,
-      factoryOperator.address,
       factoryAddress,
       name,
       symbol,
-      region, city,
+      region,
     ]);
 
     return {
       deployer,
-      factoryOperator,
       treasury,
       host,
       otherAccounts,
@@ -126,32 +123,18 @@ describe('Property', () => {
       fee,
       name,
       symbol,
-      region, city,
+      region
     };
   }
 
   describe('Deployment', () => {
     it('revert if factory address is zero address', async () => {
-      const { host, name, symbol, region, city } = await loadFixture(deployPropertyFixture);
+      const { host, name, symbol, region } = await loadFixture(deployPropertyFixture);
 
       const niteFactory = await ethers.getContractFactory('Property');
       await expect(
-        ethers.deployContract('Property', [host.address, ZeroAddress, ZeroAddress, name, symbol, region, city]),
+        ethers.deployContract('Property', [host.address, ZeroAddress, name, symbol, region]),
       ).revertedWithCustomError(niteFactory, 'ZeroAddress');
-    });
-
-    it('token transfer approval must not be granted to the zero address operator.', async () => {
-      const { host, factory, name, symbol, region, city, factoryOperator } = await loadFixture(deployPropertyFixture);
-
-      const nite = await ethers.deployContract('Property', [
-        host.address,
-        ZeroAddress,
-        factory.getAddress(),
-        name,
-        symbol,
-        region, city,
-      ]);
-      expect(await nite.isApprovedForAll(host.address, factoryOperator.address)).deep.equal(false);
     });
 
     it('pause token transfer by default', async () => {
@@ -164,15 +147,6 @@ describe('Property', () => {
       const to = otherAccounts[2].address;
       const tokenId = getRandomInt(1, 100);
       await expect(token.connect(host).transferFrom(host.address, to, tokenId))
-        .emit(token, 'Transfer')
-        .withArgs(host.address, to, tokenId);
-    });
-
-    it('factory operator can transfer by default', async () => {
-      const { token, host, factoryOperator, otherAccounts } = await loadFixture(deployPropertyFixture);
-      const to = otherAccounts[2].address;
-      const tokenId = getRandomInt(1, 100);
-      await expect(token.connect(factoryOperator).transferFrom(host.address, to, tokenId))
         .emit(token, 'Transfer')
         .withArgs(host.address, to, tokenId);
     });
@@ -202,9 +176,12 @@ describe('Property', () => {
       });
 
       it('revert if caller is not host', async () => {
-        const { factoryOperator, token } = await loadFixture(deployPropertyFixture);
+        const { otherAccounts, token } = await loadFixture(deployPropertyFixture);
         const newName = 'New Nite in Venus';
-        await expect(token.connect(factoryOperator).setName(newName)).revertedWithCustomError(token, 'OwnableUnauthorizedAccount');
+        await expect(token.connect(otherAccounts[0]).setName(newName)).revertedWithCustomError(
+          token,
+          'OwnableUnauthorizedAccount',
+        );
       });
     });
 
@@ -217,9 +194,12 @@ describe('Property', () => {
       });
 
       it('revert if caller is not host', async () => {
-        const { factoryOperator, token } = await loadFixture(deployPropertyFixture);
+        const { otherAccounts, token } = await loadFixture(deployPropertyFixture);
         const baseURI = 'https://api.example.com/v1/';
-        await expect(token.connect(factoryOperator).setURL(baseURI)).revertedWithCustomError(token, 'OwnableUnauthorizedAccount');
+        await expect(token.connect(otherAccounts[0]).setURL(baseURI)).revertedWithCustomError(
+          token,
+          'OwnableUnauthorizedAccount',
+        );
       });
     });
 
@@ -674,45 +654,6 @@ describe('Property', () => {
         ](from.address, to.address, firstTokenId, firstTokenId + 2n, '0x42');
 
       await expect(tx).changeTokenBalances(token, [from, to], [-3, 3]);
-    });
-
-    it('revert if operator is zero address', async () => {
-      const { token, host, otherAccounts } = await loadFixture(deployPropertyFixture);
-      const deadline = (await time.latest()) + 1 * min;
-      const operator = ZeroAddress;
-
-      // generate signature
-      const sigs = await generatePermitForAllSignature(token, host, operator, true, deadline);
-
-      await expect(
-        token.connect(otherAccounts[0]).permitForAll(host.address, operator, true, deadline, sigs),
-      ).revertedWithCustomError(token, 'ZeroAddress');
-    });
-
-    it('revert if owner param does not match with sig', async () => {
-      const { token, host, otherAccounts, factoryOperator } = await loadFixture(deployPropertyFixture);
-      const deadline = (await time.latest()) + 1 * min;
-      const operator = otherAccounts[0];
-
-      // generate signature
-      const sigs = await generatePermitForAllSignature(token, host, operator.address, true, deadline);
-
-      await expect(
-        token.connect(operator).permitForAll(factoryOperator.address, operator.address, true, deadline, sigs),
-      ).revertedWithCustomError(token, 'InvalidPermitSignature');
-    });
-
-    it('revert if operator param does not match with sig', async () => {
-      const { token, host, otherAccounts, factoryOperator } = await loadFixture(deployPropertyFixture);
-      const deadline = (await time.latest()) + 1 * min;
-      const operator = otherAccounts[0];
-
-      // generate signature
-      const sigs = await generatePermitForAllSignature(token, host, operator.address, true, deadline);
-
-      await expect(
-        token.connect(operator).permitForAll(host.address, factoryOperator.address, true, deadline, sigs),
-      ).revertedWithCustomError(token, 'InvalidPermitSignature');
     });
 
     it('revert if approved param does not match with sig', async () => {

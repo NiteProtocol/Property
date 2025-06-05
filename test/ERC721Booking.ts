@@ -4,13 +4,12 @@ import { loadFixture } from '@nomicfoundation/hardhat-network-helpers';
 import { shouldBehaveLikeERC721Booking, shouldBehaveLikeERC721Metadata } from './ERC721Booking.behavior';
 
 async function fixture() {
-  const [deployer, factoryOperator, treasury, host, ...otherAccounts] = await ethers.getSigners();
+  const [deployer, treasury, host, ...otherAccounts] = await ethers.getSigners();
 
   const gasToken = await ethers.deployContract('ERC20Test', ['token1', 'TK1']);
   const fee = 0;
 
   const factory = await ethers.deployContract('Factory', [
-    factoryOperator.address,
     gasToken.getAddress(),
     fee,
   ]);
@@ -19,20 +18,18 @@ async function fixture() {
   const name = 'Nites in Mansion in Mars';
   const symbol = 'NT';
   const region = 'Mars';
-  const city = 'Mars Colony 1';
+
 
   const token = await ethers.deployContract('Property', [
     host.address,
-    factoryOperator.address,
     factoryAddress,
     name,
     symbol,
-    region, city,
+    region
   ]);
 
   return {
     deployer,
-    factoryOperator,
     treasury,
     host,
     otherAccounts,
@@ -42,7 +39,7 @@ async function fixture() {
     fee,
     name,
     symbol,
-    region, city
+    region
   };
 }
 

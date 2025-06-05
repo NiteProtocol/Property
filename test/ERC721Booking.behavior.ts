@@ -35,20 +35,20 @@ export function shouldBehaveLikeERC721Booking() {
     });
 
     it('revert on deployment with zero address host', async function () {
-      const { factory, operator, name, symbol, region, city } = this;
+      const { factory, name, symbol, region } = this;
 
       const niteFactory = await ethers.getContractFactory('Property');
       await expect(
-        ethers.deployContract('Property', [ZeroAddress, operator.address, factory.getAddress(), name, symbol, region, city]),
+        ethers.deployContract('Property', [ZeroAddress, factory.getAddress(), name, symbol, region]),
       ).revertedWithCustomError(niteFactory, 'OwnableInvalidOwner');
     });
 
     it('revert on deployment with zero address factory', async function () {
-      const { host, operator, name, symbol, region, city } = this;
+      const { host, name, symbol, region } = this;
 
       const niteFactory = await ethers.getContractFactory('Property');
       await expect(
-        ethers.deployContract('Property', [host.address, operator.address, ZeroAddress, name, symbol, region, city]),
+        ethers.deployContract('Property', [host.address, ZeroAddress, name, symbol, region]),
       ).revertedWithCustomError(niteFactory, 'ZeroAddress');
     });
   });
@@ -398,46 +398,6 @@ export function shouldBehaveLikeERC721Booking() {
           });
         });
 
-        describe('by operator', function () {
-          it('revert if from is not token owner', async function () {
-            await expect(
-              this.token
-                .connect(this.factoryOperator)
-                .safeTransferFrom(this.to.address, this.operator.address, firstTokenId),
-            ).revertedWithCustomError(this.token, 'WrongFrom');
-          });
-
-          it('revert if sender is not operator', async function () {
-            await expect(
-              this.token.connect(this.to).safeTransferFrom(this.host.address, this.to.address, firstTokenId),
-            ).revertedWithCustomError(this.token, 'Unauthorized');
-          });
-
-          it('transfer to non-zero address', async function () {
-            expect(await this.token.balanceOf(this.host.address)).deep.equal(0);
-            expect(await this.token.balanceOf(this.factoryOperator.address)).deep.equal(0);
-
-            await this.token
-              .connect(this.factoryOperator)
-              .safeTransferFrom(this.host.address, this.to.address, firstTokenId);
-
-            expect(await this.token.balanceOf(this.to.address)).deep.equal(1n);
-            expect(await this.token.ownerOf(firstTokenId)).deep.equal(this.to.address);
-          });
-
-          it('transfer to zero address', async function () {
-            expect(await this.token.balanceOf(this.host.address)).deep.equal(0);
-            expect(await this.token.balanceOf(this.factoryOperator.address)).deep.equal(0);
-
-            await this.token
-              .connect(this.factoryOperator)
-              .safeTransferFrom(this.host.address, ZeroAddress, firstTokenId);
-
-            expect(await this.token.balanceOf(this.host.address)).deep.equal(0);
-            expect(await this.token.ownerOf(firstTokenId)).deep.equal(this.host.address);
-          });
-        });
-
         describe('by holder', function () {
           beforeEach(async function () {
             await this.token.connect(this.host).safeTransferFrom(this.host.address, this.to.address, firstTokenId);
@@ -541,61 +501,6 @@ export function shouldBehaveLikeERC721Booking() {
               .safeBulkTransferFrom(this.host.address, this.host.address, firstTokenId, firstTokenId + 4n);
 
             expect(await this.token.balanceOf(this.host.address)).deep.equal(5);
-            for (let i = 0n; i < 5n; i++) {
-              const res = await this.token.ownerOf(firstTokenId + i);
-              expect(res).deep.equal(this.host.address);
-            }
-          });
-        });
-
-        describe('by operator', function () {
-          it('revert if fromId > toId', async function () {
-            await expect(
-              this.token
-                .connect(this.factoryOperator)
-                .safeBulkTransferFrom(this.host.address, this.to.address, firstTokenId, firstTokenId - 2n),
-            ).revertedWithCustomError(this.token, 'InvalidTokenId');
-          });
-
-          it('revert if from is not token owner', async function () {
-            await expect(
-              this.token
-                .connect(this.factoryOperator)
-                .safeBulkTransferFrom(this.to.address, this.to.address, firstTokenId, firstTokenId + 2n),
-            ).revertedWithCustomError(this.token, 'WrongFrom');
-          });
-
-          it('revert if sender is not operator', async function () {
-            await expect(
-              this.token
-                .connect(this.to)
-                .safeBulkTransferFrom(this.host.address, this.to.address, firstTokenId, firstTokenId + 2n),
-            ).revertedWithCustomError(this.token, 'Unauthorized');
-          });
-
-          it('transfer bulk of tokens to non-zero address', async function () {
-            expect(await this.token.balanceOf(this.operator.address)).deep.equal(0);
-
-            await this.token
-              .connect(this.factoryOperator)
-              .safeBulkTransferFrom(this.host.address, this.to.address, firstTokenId, firstTokenId + 4n);
-
-            expect(await this.token.balanceOf(this.to.address)).deep.equal(5);
-            expect(await this.token.balanceOf(this.operator.address)).deep.equal(0);
-            for (let i = 0n; i < 5n; i++) {
-              const res = await this.token.ownerOf(firstTokenId + i);
-              expect(res).deep.equal(this.to.address);
-            }
-          });
-
-          it('transfer bulk of tokens to zero address', async function () {
-            expect(await this.token.balanceOf(this.operator.address)).deep.equal(0);
-
-            await this.token
-              .connect(this.factoryOperator)
-              .safeBulkTransferFrom(this.host.address, ZeroAddress, firstTokenId, firstTokenId + 4n);
-
-            expect(await this.token.balanceOf(this.operator.address)).deep.equal(0);
             for (let i = 0n; i < 5n; i++) {
               const res = await this.token.ownerOf(firstTokenId + i);
               expect(res).deep.equal(this.host.address);
