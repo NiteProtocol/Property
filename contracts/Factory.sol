@@ -3,12 +3,13 @@ pragma solidity 0.8.29;
 
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {Create2} from "@openzeppelin/contracts/utils/Create2.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IFactory} from "./interfaces/IFactory.sol";
 import {Property} from "./Property.sol";
 
 contract Factory is IFactory, Ownable {
     bytes32 public constant VERSION = keccak256("BOOKING_V5");
-    address public immutable TRVL;
+    IERC20 public immutable TRVL;
 
     uint256 public feeAmountPerTransfer; // fee in TRVL per Nite token transfer
 
@@ -41,6 +42,6 @@ contract Factory is IFactory, Ownable {
     }
 
     function getTRVLAddress() public view returns (address) {
-        return TRVL;
+        return address(TRVL);
     }
 }
