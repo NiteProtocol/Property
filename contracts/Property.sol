@@ -40,12 +40,11 @@ contract Property is INiteToken, ERC721Booking, Pausable, EIP712 {
     // the nonces mapping is used for replay protection
     mapping(address => uint256) public sigNonces;
 
-    constructor(address _host, address _initialApproved, address _factory,
+    constructor(address _host, address _factory,
         string memory _name, string memory _symbol,
         string memory _region
     ) ERC721Booking(_host, _name, _symbol) EIP712("DtravelNT", "1") {
         if (_factory == address(0)) { revert ZeroAddress(); }
-        if (_initialApproved != address(0)) { _setApprovalForAll(_host, _initialApproved, true); }
         FACTORY = IFactory(_factory);
         TRVL = IERC20(FACTORY.getTRVLAddress());
         STRVL = IOwnedToken(new OwnedToken(_name, _symbol));
@@ -122,6 +121,7 @@ contract Property is INiteToken, ERC721Booking, Pausable, EIP712 {
     function setPaymentReceiver(address _a) external onlyOwner { paymentReceiver = _a; }
     function setContactDetails(string calldata _s) external onlyOwner { contactDetails = _s; } 
     function setMainImageURL(string calldata _s) external onlyOwner { mainImageURL = _s; } 
+    function authorize(address a) external onlyOwner { if (a != address(0)) { _setApprovalForAll(owner(), a, true); } }
 
     /*============================================================
                             Staking
