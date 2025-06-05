@@ -8,13 +8,15 @@ import {SignatureChecker} from "@openzeppelin/contracts/utils/cryptography/Signa
 
 import {INiteToken} from "./interfaces/INiteToken.sol";
 import {IFactory} from "./interfaces/IFactory.sol";
+import {IProperty} from "./interfaces/IProperty.sol";
 import {IOwnedToken} from "./interfaces/IOwnedToken.sol";
 
 import {ERC721Booking} from "./libraries/ERC721Booking.sol";
 
 import {OwnedToken} from "./OwnedToken.sol";
+import {PropertyInfo} from "./PropertyInfo.sol";
 
-contract Property is INiteToken, ERC721Booking, Pausable, EIP712 {
+contract Property is IProperty, INiteToken, ERC721Booking, Pausable, EIP712 {
     using SafeERC20 for IERC20;
     using SignatureChecker for address;
 
@@ -142,6 +144,21 @@ contract Property is INiteToken, ERC721Booking, Pausable, EIP712 {
       uint256 amount = amountStaked * price() / DENOMINATOR;
       STRVL.burn(msg.sender, amountStaked);
       TRVL.safeTransfer(msg.sender, amount);
+    }
+
+    /*============================================================
+                            GETTERS
+    ============================================================*/
+
+    function getPropertyInfo() public view returns (PropertyInfo memory) {
+        return PropertyInfo(
+            address(this), owner(), name, symbol, region, url,
+            baseRate,
+            6, // maxGuests TODO
+            TRVL.balanceOf(address(this)),
+            price(),
+            0 // nightsBooked TODO
+        );
     }
 
     /*============================================================
