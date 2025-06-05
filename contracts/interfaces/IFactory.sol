@@ -9,7 +9,7 @@ interface IFactory {
     function getTRVLAddress() external view returns (address);
     function createPropertyContract(uint256 _slot, address _host, 
       string calldata _name, string calldata _symbol,
-      string calldata _country, string calldata _city
+      string calldata _region
     ) external returns (address _nft);
 
     event NewOperator(address indexed newOperator);

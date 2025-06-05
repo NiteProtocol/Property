@@ -33,7 +33,6 @@ contract Property is INiteToken, ERC721Booking, Pausable, EIP712 {
     address public paymentReceiver; // address where payments will be sent. It's initiated as the owner's address by default.
 
     string public region; // the region where the property is located
-    string public city;   // the city where the property is located
     
     string public contactDetails; // contact details for the property's manager
     string public mainImageURL;   // URL of the main image for the property
@@ -43,7 +42,7 @@ contract Property is INiteToken, ERC721Booking, Pausable, EIP712 {
 
     constructor(address _host, address _initialApproved, address _factory,
         string memory _name, string memory _symbol,
-        string memory _region, string memory _city
+        string memory _region
     ) ERC721Booking(_host, _name, _symbol) EIP712("DtravelNT", "1") {
         if (_factory == address(0)) { revert ZeroAddress(); }
         if (_initialApproved != address(0)) { _setApprovalForAll(_host, _initialApproved, true); }
@@ -51,7 +50,6 @@ contract Property is INiteToken, ERC721Booking, Pausable, EIP712 {
         TRVL = IERC20(FACTORY.getTRVLAddress());
         STRVL = IOwnedToken(new OwnedToken(_name, _symbol));
         region = _region;
-        city = _city;
         paymentReceiver = _host;
         _pause(); // pause token transfers by default
     }
