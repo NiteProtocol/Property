@@ -123,6 +123,7 @@ contract Property is IProperty, INiteToken, ERC721Booking, Pausable, EIP712 {
     function setPaymentReceiver(address _a) external onlyOwner { paymentReceiver = _a; }
     function setContactDetails(string calldata _s) external onlyOwner { contactDetails = _s; } 
     function setMainImageURL(string calldata _s) external onlyOwner { mainImageURL = _s; } 
+    function setRegion(string calldata _r) external onlyOwner { region = _r; }
     function authorize(address a) external onlyOwner { if (a != address(0)) { _setApprovalForAll(owner(), a, true); } }
 
     /*============================================================
